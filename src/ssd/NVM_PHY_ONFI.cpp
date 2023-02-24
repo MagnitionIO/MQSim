@@ -1,9 +1,9 @@
 #include "NVM_PHY_ONFI.h"
 
 namespace SSD_Components {
-	void NVM_PHY_ONFI::ConnectToTransactionServicedSignal(TransactionServicedHandlerType function)
+	void NVM_PHY_ONFI::ConnectToTransactionServicedSignal(Sim_Object *instance, TransactionServicedHandlerType function)
 	{
-		connectedTransactionServicedHandlers.push_back(function);
+		connectedTransactionServicedHandlers.emplace_back(instance, function);
 	}
 
 	/*
@@ -15,36 +15,33 @@ namespace SSD_Components {
 	*/
 	void NVM_PHY_ONFI::broadcastTransactionServicedSignal(NVM_Transaction_Flash* transaction)
 	{
-		for (std::vector<TransactionServicedHandlerType>::iterator it = connectedTransactionServicedHandlers.begin();
-			it != connectedTransactionServicedHandlers.end(); it++) {
-			(*it)(transaction);
+		for (const auto &it : connectedTransactionServicedHandlers) {
+			it.second(it.first, transaction);
 		}
 		delete transaction;//This transaction has been consumed and no more needed
 	}
 
-	void NVM_PHY_ONFI::ConnectToChannelIdleSignal(ChannelIdleHandlerType function)
+	void NVM_PHY_ONFI::ConnectToChannelIdleSignal(MQSimEngine::Sim_Object *instance, ChannelIdleHandlerType function)
 	{
-		connectedChannelIdleHandlers.push_back(function);
+		connectedChannelIdleHandlers.emplace_back(instance, function);
 	}
 
 	void NVM_PHY_ONFI::broadcastChannelIdleSignal(flash_channel_ID_type channelID)
 	{
-		for (std::vector<ChannelIdleHandlerType>::iterator it = connectedChannelIdleHandlers.begin();
-			it != connectedChannelIdleHandlers.end(); it++) {
-			(*it)(channelID);
+		for (const auto &it : connectedChannelIdleHandlers) {
+			it.second(it.first, channelID);
 		}
 	}
 
-	void NVM_PHY_ONFI::ConnectToChipIdleSignal(ChipIdleHandlerType function)
+	void NVM_PHY_ONFI::ConnectToChipIdleSignal(MQSimEngine::Sim_Object *instance, ChipIdleHandlerType function)
 	{
-		connectedChipIdleHandlers.push_back(function);
+		connectedChipIdleHandlers.emplace_back(instance, function);
 	}
 
 	void NVM_PHY_ONFI::broadcastChipIdleSignal(NVM::FlashMemory::Flash_Chip* chip)
 	{
-		for (std::vector<ChipIdleHandlerType>::iterator it = connectedChipIdleHandlers.begin();
-			it != connectedChipIdleHandlers.end(); it++) {
-			(*it)(chip);
+		for (const auto & it : connectedChipIdleHandlers) {
+			it.second(it.first, chip);
 		}
 	}
 }

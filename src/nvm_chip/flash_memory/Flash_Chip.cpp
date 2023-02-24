@@ -48,9 +48,9 @@ namespace NVM
 			delete[] _programLatency;
 		}
 
-		void Flash_Chip::Connect_to_chip_ready_signal(ChipReadySignalHandlerType function)
+		void Flash_Chip::Connect_to_chip_ready_signal(MQSimEngine::Sim_Object *instance, ChipReadySignalHandlerType function)
 		{
-			connectedReadyHandlers.push_back(function);
+			connectedReadyHandlers.push_back(std::make_pair(instance, function));
 		}
 		
 		void Flash_Chip::Start_simulation()
@@ -72,7 +72,7 @@ namespace NVM
 		
 		void Flash_Chip::Change_memory_status_preconditioning(const NVM_Memory_Address* address, const void* status_info)
 		{
-			Physical_Page_Address* flash_address = (Physical_Page_Address*)address;
+			auto flash_address = (Physical_Page_Address*)address;
 			Dies[flash_address->DieID]->Planes[flash_address->PlaneID]->Blocks[flash_address->BlockID]->Pages[flash_address->PageID].Metadata.LPA = *(LPA_type*)status_info;
 		}
 		
@@ -83,8 +83,8 @@ namespace NVM
 		
 		void Flash_Chip::Execute_simulator_event(MQSimEngine::Sim_Event* ev)
 		{
-			Chip_Sim_Event_Type eventType = (Chip_Sim_Event_Type)ev->Type;
-			Flash_Command* command = (Flash_Command*)ev->Parameters;
+			auto eventType = (Chip_Sim_Event_Type)ev->Type;
+			auto command = (Flash_Command*)ev->Parameters;
 
 			switch (eventType) {
 				case Chip_Sim_Event_Type::COMMAND_FINISHED:
@@ -172,10 +172,10 @@ namespace NVM
 				case CMD_ERASE_BLOCK:
 				case CMD_ERASE_BLOCK_MULTIPLANE:
 				{
-					for (unsigned int planeCntr = 0; planeCntr < command->Address.size(); planeCntr++) {
+					for (auto & Addres : command->Address) {
 						STAT_eraseCount++;
-						targetDie->Planes[command->Address[planeCntr].PlaneID]->Erase_count++;
-						Block* targetBlock = targetDie->Planes[command->Address[planeCntr].PlaneID]->Blocks[command->Address[planeCntr].BlockID];
+						targetDie->Planes[Addres.PlaneID]->Erase_count++;
+						Block* targetBlock = targetDie->Planes[Addres.PlaneID]->Blocks[Addres.BlockID];
 						for (unsigned int i = 0; i < page_no_per_block; i++) {
 							//targetBlock->Pages[i].Metadata.SourceStreamID = NO_STREAM;
 							//targetBlock->Pages[i].Metadata.Status = FREE_PAGE;
@@ -194,9 +194,8 @@ namespace NVM
 
 		void Flash_Chip::broadcast_ready_signal(Flash_Command* command)
 		{
-			for (std::vector<ChipReadySignalHandlerType>::iterator it = connectedReadyHandlers.begin();
-				it != connectedReadyHandlers.end(); it++) {
-				(*it)(this, command);
+			for (const auto &it : connectedReadyHandlers) {
+				it.second(it.first, this, command);
 			}
 		}
 

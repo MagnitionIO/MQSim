@@ -74,13 +74,13 @@ namespace NVM
 
 				this->lastTransferStart = INVALID_TIME;
 			}
-			void Change_memory_status_preconditioning(const NVM_Memory_Address* address, const void* status_info);
-			void Start_simulation();
-			void Validate_simulation_config();
-			void Setup_triggers();
-			void Execute_simulator_event(MQSimEngine::Sim_Event*);
-			typedef void(*ChipReadySignalHandlerType) (Flash_Chip* targetChip, Flash_Command* command);
-			void Connect_to_chip_ready_signal(ChipReadySignalHandlerType);
+			void Change_memory_status_preconditioning(const NVM_Memory_Address* address, const void* status_info) override;
+			void Start_simulation() override;
+			void Validate_simulation_config() override;
+			void Setup_triggers() override;
+			void Execute_simulator_event(MQSimEngine::Sim_Event*) override;
+			typedef void(*ChipReadySignalHandlerType) (MQSimEngine::Sim_Object *instance, Flash_Chip* targetChip, Flash_Command* command);
+			void Connect_to_chip_ready_signal(MQSimEngine::Sim_Object *instance, ChipReadySignalHandlerType);
 			
 			sim_time_type Get_command_execution_latency(command_code_type CMDCode, flash_page_ID_type pageID)
 			{
@@ -89,7 +89,7 @@ namespace NVM
 					latencyType = pageID % 2;
 				} else if (flash_technology == Flash_Technology_Type::TLC) {
 					//From: Yaakobi et al., "Characterization and Error-Correcting Codes for TLC Flash Memories", ICNC 2012
-					latencyType = (pageID <= 5) ? 0 : ((pageID <= 7) ? 1 : (((pageID - 8) >> 1) % 3));;
+					latencyType = (pageID <= 5) ? 0 : ((pageID <= 7) ? 1 : (((pageID - 8) >> 1) % 3));
 				}
 
 				switch (CMDCode)
@@ -140,7 +140,7 @@ namespace NVM
 			void start_command_execution(Flash_Command* command);
 			void finish_command_execution(Flash_Command* command);
 			void broadcast_ready_signal(Flash_Command* command);
-			std::vector<ChipReadySignalHandlerType> connectedReadyHandlers;
+			std::vector<std::pair<MQSimEngine::Sim_Object*, ChipReadySignalHandlerType> > connectedReadyHandlers;
 		};
 	}
 }

@@ -42,9 +42,9 @@ namespace Host_Components
 	public:
 		SATA_HBA(sim_object_id_type id, uint16_t ncq_size, sim_time_type hba_processing_delay, PCIe_Root_Complex* pcie_root_complex, std::vector<Host_Components::IO_Flow_Base*>* IO_flows);
 		~SATA_HBA();
-		void Start_simulation();
-		void Validate_simulation_config();
-		void Execute_simulator_event(MQSimEngine::Sim_Event*);
+		void Start_simulation() override;
+		void Validate_simulation_config() override;
+		void Execute_simulator_event(MQSimEngine::Sim_Event*) override;
 		void Submit_io_request(Host_IO_Request* request);
 		void SATA_consume_io_request(Completion_Queue_Entry* cqe);
 		Submission_Queue_Entry* Read_ncq_entry(uint64_t address);

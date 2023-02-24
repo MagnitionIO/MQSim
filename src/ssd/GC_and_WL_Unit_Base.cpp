@@ -2,8 +2,7 @@
 
 namespace SSD_Components
 {
-	GC_and_WL_Unit_Base* GC_and_WL_Unit_Base::_my_instance;
-	
+
 	GC_and_WL_Unit_Base::GC_and_WL_Unit_Base(const sim_object_id_type& id,
 		Address_Mapping_Unit_Base* address_mapping_unit, Flash_Block_Manager_Base* block_manager, TSU_Base* tsu, NVM_PHY_ONFI* flash_controller,
 		GC_Block_Selection_Policy_Type block_selection_policy, double gc_threshold, bool preemptible_gc_enabled, double gc_hard_threshold,
@@ -18,7 +17,6 @@ namespace SSD_Components
 		block_no_per_plane(block_no_per_plane), pages_no_per_block(page_no_per_block), sector_no_per_page(sector_no_per_page),
 		dynamic_wearleveling_enabled(dynamic_wearleveling_enabled), static_wearleveling_enabled(static_wearleveling_enabled), static_wearleveling_threshold(static_wearleveling_threshold)
 	{
-		_my_instance = this;
 		block_pool_gc_threshold = (unsigned int)(gc_threshold * (double)block_no_per_plane);
 		if (block_pool_gc_threshold < 1) {
 			block_pool_gc_threshold = 1;
@@ -36,11 +34,13 @@ namespace SSD_Components
 	void GC_and_WL_Unit_Base::Setup_triggers()
 	{
 		Sim_Object::Setup_triggers();
-		flash_controller->ConnectToTransactionServicedSignal(handle_transaction_serviced_signal_from_PHY);
+        flash_controller->ConnectToTransactionServicedSignal(this, handle_transaction_serviced_signal_from_PHY);
 	}
 
-	void GC_and_WL_Unit_Base::handle_transaction_serviced_signal_from_PHY(NVM_Transaction_Flash* transaction)
+	void GC_and_WL_Unit_Base::handle_transaction_serviced_signal_from_PHY(Sim_Object *instance,
+                                                                          NVM_Transaction_Flash *transaction)
 	{
+        auto _my_instance = dynamic_cast<GC_and_WL_Unit_Base*>(instance);
 		PlaneBookKeepingType* pbke = &(_my_instance->block_manager->plane_manager[transaction->Address.ChannelID][transaction->Address.ChipID][transaction->Address.DieID][transaction->Address.PlaneID]);
 
 		switch (transaction->Source) {
@@ -62,7 +62,7 @@ namespace SSD_Components
 					if (_my_instance->block_manager->Can_execute_gc_wl(transaction->Address)) {
 						NVM::FlashMemory::Physical_Page_Address gc_wl_candidate_address(transaction->Address);
 						Block_Pool_Slot_Type* block = &pbke->Blocks[transaction->Address.BlockID];
-						Stats::Total_gc_executions++;
+						Simulator->stats->Total_gc_executions++;
 						_my_instance->tsu->Prepare_for_transaction_submit();
 						NVM_Transaction_Flash_ER* gc_wl_erase_tr = new NVM_Transaction_Flash_ER(Transaction_Source_Type::GC_WL, block->Stream_id, gc_wl_candidate_address);
 						
@@ -73,7 +73,7 @@ namespace SSD_Components
 							NVM_Transaction_Flash_WR* gc_wl_write = NULL;
 							for (flash_page_ID_type pageID = 0; pageID < block->Current_page_write_index; pageID++) {
 								if (_my_instance->block_manager->Is_page_valid(block, pageID)) {
-									Stats::Total_page_movements_for_gc++;
+									Simulator->stats->Total_page_movements_for_gc++;
 									gc_wl_candidate_address.PageID = pageID;
 									if (_my_instance->use_copyback) {
 										gc_wl_write = new NVM_Transaction_Flash_WR(Transaction_Source_Type::GC_WL, block->Stream_id, _my_instance->sector_no_per_page * SECTOR_SIZE_IN_BYTE,
@@ -98,8 +98,9 @@ namespace SSD_Components
 						_my_instance->tsu->Schedule();
 					}
 				}
-
-				return;
+                return;
+            default:
+                break;
 		}
 
 		switch (transaction->Type) {
@@ -163,6 +164,8 @@ namespace SSD_Components
 					_my_instance->Check_gc_required(pbke->Get_free_block_pool_size(), transaction->Address);
 				}
 				break;
+            default:
+                break;
 			} //switch (transaction->Type)
 	}
 
@@ -190,6 +193,8 @@ namespace SSD_Components
 				return rga_set_size;
 			case GC_Block_Selection_Policy_Type::RANDOM_PP:
 				return random_pp_threshold;
+            default:
+                break;
 		}
 
 		return 0;
@@ -215,7 +220,7 @@ namespace SSD_Components
 	
 	bool GC_and_WL_Unit_Base::Stop_servicing_writes(const NVM::FlashMemory::Physical_Page_Address& plane_address)
 	{
-		PlaneBookKeepingType* pbke = &(_my_instance->block_manager->plane_manager[plane_address.ChannelID][plane_address.ChipID][plane_address.DieID][plane_address.PlaneID]);
+		PlaneBookKeepingType* pbke = &(block_manager->plane_manager[plane_address.ChannelID][plane_address.ChipID][plane_address.DieID][plane_address.PlaneID]);
 		return block_manager->Get_pool_size(plane_address) < max_ongoing_gc_reqs_per_plane;
 	}
 
@@ -264,7 +269,7 @@ namespace SSD_Components
 		pbke->Ongoing_erase_operations.insert(wl_candidate_block_id);
 		address_mapping_unit->Set_barrier_for_accessing_physical_block(wl_candidate_address);//Lock the block, so no user request can intervene while the GC is progressing
 		if (block_manager->Can_execute_gc_wl(wl_candidate_address)) {//If there are ongoing requests targeting the candidate block, the gc execution should be postponed
-			Stats::Total_wl_executions++;
+			Simulator->stats->Total_wl_executions++;
 			tsu->Prepare_for_transaction_submit();
 
 			NVM_Transaction_Flash_ER* wl_erase_tr = new NVM_Transaction_Flash_ER(Transaction_Source_Type::GC_WL, pbke->Blocks[wl_candidate_block_id].Stream_id, wl_candidate_address);
@@ -273,7 +278,6 @@ namespace SSD_Components
 				NVM_Transaction_Flash_WR* wl_write = NULL;
 				for (flash_page_ID_type pageID = 0; pageID < block->Current_page_write_index; pageID++) {
 					if (block_manager->Is_page_valid(block, pageID)) {
-						Stats::Total_page_movements_for_gc;
 						wl_candidate_address.PageID = pageID;
 						if (use_copyback) {
 							wl_write = new NVM_Transaction_Flash_WR(Transaction_Source_Type::GC_WL, block->Stream_id, sector_no_per_page * SECTOR_SIZE_IN_BYTE,

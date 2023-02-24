@@ -31,7 +31,7 @@ namespace Host_Components
 				Write_to_memory(messages->Address, messages->Payload);
 				break;
 			default:
-				break;
+                break;
 			}
 			delete messages;
 		}

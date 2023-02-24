@@ -2,21 +2,18 @@
 
 namespace Utils
 {
-	double CMRRandomGenerator::norm = 2.328306549295728e-10;
-	double CMRRandomGenerator::m1 = 4294967087.0;
-	double CMRRandomGenerator::m2 = 4294944443.0;
-	double CMRRandomGenerator::a12 = 1403580.0;
-	double CMRRandomGenerator::a13 = -810728.0;
-	double CMRRandomGenerator::a21 = 527612.0;
-	double CMRRandomGenerator::a23 = -1370589.0;
-
-	double CMRRandomGenerator::a[2][3][3] = { {{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {a13, a12, 0.0}},
-	{{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {a23, 0.0, a21}} };
-
-	double CMRRandomGenerator::m[2] = { m1, m2 };
-	double CMRRandomGenerator::init_s[2][3] = { {1.0, 1.0, 1.0}, {1.0, 1.0, 1.0} };
-
 	CMRRandomGenerator::CMRRandomGenerator(int64_t n, int32_t e)
+    : norm(2.328306549295728e-10),
+      m1(4294967087.0),
+      m2(4294944443.0),
+      a12(1403580.0),
+      a13(-810728.0),
+      a21(527612.0),
+      a23(-1370589.0),
+      m({m1, m2} ),
+      a({ {{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {a13, a12, 0.0}},
+          {{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {a23, 0.0, a21}} }),
+          init_s({ {1.0, 1.0, 1.0}, {1.0, 1.0, 1.0} })
 	{
 		for (int i = 0; i <= 1; i++) {
 			for (int j = 0; j <= 2; j++) {

@@ -48,7 +48,7 @@ namespace Host_Components
 					 HostInterface_Types SSD_device_type, PCIe_Root_Complex *pcie_root_complex, SATA_HBA *sata_hba,
 					 bool enabled_logging, sim_time_type logging_period, std::string logging_file_path);
 		~IO_Flow_Base();
-		void Start_simulation();
+		void Start_simulation() override;
 		IO_Flow_Priority_Class::Priority Priority_class() { return priority_class; }
 		virtual Host_IO_Request* Generate_next_request() = 0;
 		virtual void NVMe_consume_io_request(Completion_Queue_Entry*);
@@ -65,9 +65,9 @@ namespace Host_Components
 		uint32_t Get_end_to_end_request_delay();//in microseconds
 		uint32_t Get_min_end_to_end_request_delay();//in microseconds
 		uint32_t Get_max_end_to_end_request_delay();//in microseconds
-		void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter& xmlwriter);
-		virtual void Get_statistics(Utils::Workload_Statistics& stats, LPA_type(*Convert_host_logical_address_to_device_address)(LHA_type lha),
-			page_status_type(*Find_NVM_subunit_access_bitmap)(LHA_type lha)) = 0;
+		void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter& xmlwriter) override;
+		virtual void Get_statistics(Utils::Workload_Statistics& stats, MQSimEngine::Sim_Object *dev, LPA_type(*Convert_host_logical_address_to_device_address)(MQSimEngine::Sim_Object *ins, LHA_type lha),
+			page_status_type(*Find_NVM_subunit_access_bitmap)(MQSimEngine::Sim_Object *ins, LHA_type lha)) = 0;
 	protected:
 		uint16_t flow_id;
 		double initial_occupancy_ratio;//The initial amount of valid logical pages when pereconditioning is performed

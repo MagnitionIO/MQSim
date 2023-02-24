@@ -13,10 +13,10 @@ namespace Utils
 			double NextDouble();
 		private:
 			double s[2][3];
-			static double norm, m1, m2, a12, a13, a21, a23;
-			static double a[2][3][3];
-			static double m[2];
-			static double init_s[2][3];
+			double norm, m1, m2, a12, a13, a21, a23;
+			double a[2][3][3];
+			double m[2];
+			double init_s[2][3];
 
 
 			static double mod(double x, double m)
@@ -92,7 +92,7 @@ namespace Utils
 				for (int i = 0; i <= 2; i++) {
 					w[i] = 0;
 					for (int j = 0; j <= 2; j++) {
-						w[i] = (a[i][j] * u[j] + w[i]) % m;
+						w[i] = static_cast<int64_t>((a[i][j] * u[j]) + w[i]) % m;
 					}
 				}
 				v_copy(w, v);
@@ -106,7 +106,7 @@ namespace Utils
 					for (int j = 0; j <= 2; j++) {
 						d[i][j] = 0;
 						for (int k = 0; k <= 2; k++) {
-							d[i][j] = (a[i][k] * b[k][j] + d[i][j]) % m;
+							d[i][j] = static_cast<int64_t>((a[i][k] * b[k][j]) + d[i][j]) % m;
 						}
 					}
 				}

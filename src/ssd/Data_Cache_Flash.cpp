@@ -125,7 +125,7 @@ namespace SSD_Components
 		const data_timestamp_type timestamp, const page_status_type state_bitmap_of_write_sectors)
 	{
 		LPA_type key = LPN_TO_UNIQUE_KEY(stream_id, lpn);
-		
+
 		if (slots.find(key) != slots.end()) {
 			throw std::logic_error("Duplicate lpn insertion into data cache!!");
 		}

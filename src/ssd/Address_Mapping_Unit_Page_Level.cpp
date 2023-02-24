@@ -14,9 +14,6 @@ namespace SSD_Components
 
 	Cached_Mapping_Table::~Cached_Mapping_Table()
 	{
-		std::unordered_map<LPA_type, CMTSlotType*> addressMap;
-		std::list<std::pair<LPA_type, CMTSlotType*>> lruList;
-
 		auto entry = addressMap.begin();
 		while (entry != addressMap.end()) {
 			delete (*entry).second;
@@ -122,7 +119,7 @@ namespace SSD_Components
 		CMTSlotType* cmtEnt = new CMTSlotType();
 		cmtEnt->Dirty = false;
 		cmtEnt->Stream_id = streamID;
-		lruList.push_front(std::pair<LPA_type, CMTSlotType*>(key, cmtEnt));
+		lruList.emplace_front(key, cmtEnt);
 		cmtEnt->Status = CMTEntryStatus::WAITING;
 		cmtEnt->listPtr = lruList.begin();
 		addressMap[key] = cmtEnt;
@@ -130,7 +127,7 @@ namespace SSD_Components
 
 	CMTSlotType Cached_Mapping_Table::Evict_one_slot(LPA_type& lpa)
 	{
-		assert(addressMap.size() > 0);
+		assert(!addressMap.empty());
 		addressMap.erase(lruList.back().first);
 		lpa = UNIQUE_KEY_TO_LPN(lruList.back().second->Stream_id,lruList.back().first);
 		CMTSlotType evictedItem = *lruList.back().second;
@@ -288,7 +285,6 @@ namespace SSD_Components
 		}
 	}
 
-	Address_Mapping_Unit_Page_Level* Address_Mapping_Unit_Page_Level::_my_instance = NULL;
 	Address_Mapping_Unit_Page_Level::Address_Mapping_Unit_Page_Level(const sim_object_id_type& id, FTL* ftl, NVM_PHY_ONFI* flash_controller, Flash_Block_Manager_Base* block_manager,
 		bool ideal_mapping_table, unsigned int cmt_capacity_in_byte, Flash_Plane_Allocation_Scheme_Type PlaneAllocationScheme,
 		unsigned int concurrent_stream_no,
@@ -301,7 +297,6 @@ namespace SSD_Components
 			concurrent_stream_no, channel_count, chip_no_per_channel, die_no_per_chip, plane_no_per_die,
 			Block_no_per_plane, Page_no_per_block, SectorsPerPage, PageSizeInByte, Overprovisioning_ratio, sharing_mode, fold_large_addresses)
 	{
-		_my_instance = this;
 		domains = new AddressMappingDomain*[no_of_input_streams];
 
 		Write_transactions_for_overfull_planes = new std::set<NVM_Transaction_Flash_WR*>***[channel_count];
@@ -379,13 +374,19 @@ namespace SSD_Components
 				}
 			}
 
-			domains[domainID] = new AddressMappingDomain(per_stream_cmt_capacity, CMT_entry_size, no_of_translation_entries_per_page,
-				sharedCMT,
-				PlaneAllocationScheme,
-				channel_ids, (unsigned int)(stream_channel_ids[domainID].size()), chip_ids, (unsigned int)(stream_chip_ids[domainID].size()), die_ids, 
-				(unsigned int)(stream_die_ids[domainID].size()), plane_ids, (unsigned int)(stream_plane_ids[domainID].size()),
-				Utils::Logical_Address_Partitioning_Unit::PDA_count_allocate_to_flow(domainID), Utils::Logical_Address_Partitioning_Unit::LHA_count_allocate_to_flow_from_device_view(domainID),
-				sector_no_per_page);
+            domains[domainID] = new AddressMappingDomain(per_stream_cmt_capacity, CMT_entry_size,
+                                                         no_of_translation_entries_per_page,
+                                                         sharedCMT,
+                                                         PlaneAllocationScheme,
+                                                         channel_ids,
+                                                         (unsigned int) (stream_channel_ids[domainID].size()), chip_ids,
+                                                         (unsigned int) (stream_chip_ids[domainID].size()), die_ids,
+                                                         (unsigned int) (stream_die_ids[domainID].size()), plane_ids,
+                                                         (unsigned int) (stream_plane_ids[domainID].size()),
+                                                         Simulator->lapu->PDA_count_allocate_to_flow(domainID),
+                                                         Simulator->lapu->LHA_count_allocate_to_flow_from_device_view(
+                                                                 domainID),
+                                                         sector_no_per_page);
 			delete[] channel_ids;
 			delete[] chip_ids;
 			delete[] die_ids;
@@ -404,7 +405,7 @@ namespace SSD_Components
 	void Address_Mapping_Unit_Page_Level::Setup_triggers()
 	{
 		Sim_Object::Setup_triggers();
-		flash_controller->ConnectToTransactionServicedSignal(handle_transaction_serviced_signal_from_PHY);
+        flash_controller->ConnectToTransactionServicedSignal(this, handle_transaction_serviced_signal_from_PHY);
 	}
 
 	void Address_Mapping_Unit_Page_Level::Start_simulation()
@@ -510,24 +511,24 @@ namespace SSD_Components
 	bool Address_Mapping_Unit_Page_Level::query_cmt(NVM_Transaction_Flash* transaction)
 	{
 		stream_id_type stream_id = transaction->Stream_id;
-		Stats::total_CMT_queries++;
-		Stats::total_CMT_queries_per_stream[stream_id]++;
+        Simulator->stats->total_CMT_queries++;
+        Simulator->stats->total_CMT_queries_per_stream[stream_id]++;
 
 		if (domains[stream_id]->Mapping_entry_accessible(ideal_mapping_table, stream_id, transaction->LPA))//Either limited or unlimited CMT
 		{
-			Stats::CMT_hits_per_stream[stream_id]++;
-			Stats::CMT_hits++;
+            Simulator->stats->CMT_hits_per_stream[stream_id]++;
+            Simulator->stats->CMT_hits++;
 			if (transaction->Type == Transaction_Type::READ) {
-				Stats::total_readTR_CMT_queries_per_stream[stream_id]++;
-				Stats::total_readTR_CMT_queries++;
-				Stats::readTR_CMT_hits_per_stream[stream_id]++;
-				Stats::readTR_CMT_hits++;
+                Simulator->stats->total_readTR_CMT_queries_per_stream[stream_id]++;
+                Simulator->stats->total_readTR_CMT_queries++;
+                Simulator->stats->readTR_CMT_hits_per_stream[stream_id]++;
+                Simulator->stats->readTR_CMT_hits++;
 			} else {
 				//This is a write transaction
-				Stats::total_writeTR_CMT_queries++;
-				Stats::total_writeTR_CMT_queries_per_stream[stream_id]++;
-				Stats::writeTR_CMT_hits++;
-				Stats::writeTR_CMT_hits_per_stream[stream_id]++;
+                Simulator->stats->total_writeTR_CMT_queries++;
+                Simulator->stats->total_writeTR_CMT_queries_per_stream[stream_id]++;
+                Simulator->stats->writeTR_CMT_hits++;
+                Simulator->stats->writeTR_CMT_hits_per_stream[stream_id]++;
 			}
 
 			if (translate_lpa_to_ppa(stream_id, transaction)) {
@@ -539,18 +540,18 @@ namespace SSD_Components
 		} else {//Limited CMT
 			//Maybe we can catch mapping data from an on-the-fly write back request
 			if (request_mapping_entry(stream_id, transaction->LPA)) {
-				Stats::CMT_miss++;
-				Stats::CMT_miss_per_stream[stream_id]++;
+                Simulator->stats->CMT_miss++;
+                Simulator->stats->CMT_miss_per_stream[stream_id]++;
 				if (transaction->Type == Transaction_Type::READ) {
-					Stats::total_readTR_CMT_queries++;
-					Stats::total_readTR_CMT_queries_per_stream[stream_id]++;
-					Stats::readTR_CMT_miss++;
-					Stats::readTR_CMT_miss_per_stream[stream_id]++;
+                    Simulator->stats->total_readTR_CMT_queries++;
+                    Simulator->stats->total_readTR_CMT_queries_per_stream[stream_id]++;
+                    Simulator->stats->readTR_CMT_miss++;
+                    Simulator->stats->readTR_CMT_miss_per_stream[stream_id]++;
 				} else { //This is a write transaction
-					Stats::total_writeTR_CMT_queries++;
-					Stats::total_writeTR_CMT_queries_per_stream[stream_id]++;
-					Stats::writeTR_CMT_miss++;
-					Stats::writeTR_CMT_miss_per_stream[stream_id]++;
+                    Simulator->stats->total_writeTR_CMT_queries++;
+                    Simulator->stats->total_writeTR_CMT_queries_per_stream[stream_id]++;
+                    Simulator->stats->writeTR_CMT_miss++;
+                    Simulator->stats->writeTR_CMT_miss_per_stream[stream_id]++;
 				}
 				if (translate_lpa_to_ppa(stream_id, transaction)) {
 					return true;
@@ -560,16 +561,16 @@ namespace SSD_Components
 				}
 			} else {
 				if (transaction->Type == Transaction_Type::READ) {
-					Stats::total_readTR_CMT_queries++;
-					Stats::total_readTR_CMT_queries_per_stream[stream_id]++;
-					Stats::readTR_CMT_miss++;
-					Stats::readTR_CMT_miss_per_stream[stream_id]++;
+                    Simulator->stats->total_readTR_CMT_queries++;
+                    Simulator->stats->total_readTR_CMT_queries_per_stream[stream_id]++;
+                    Simulator->stats->readTR_CMT_miss++;
+                    Simulator->stats->readTR_CMT_miss_per_stream[stream_id]++;
 					domains[stream_id]->Waiting_unmapped_read_transactions.insert(std::pair<LPA_type, NVM_Transaction_Flash*>(transaction->LPA, transaction));
 				} else {//This is a write transaction
-					Stats::total_writeTR_CMT_queries++;
-					Stats::total_writeTR_CMT_queries_per_stream[stream_id]++;
-					Stats::writeTR_CMT_miss++;
-					Stats::writeTR_CMT_miss_per_stream[stream_id]++;
+                    Simulator->stats->total_writeTR_CMT_queries++;
+                    Simulator->stats->total_writeTR_CMT_queries_per_stream[stream_id]++;
+                    Simulator->stats->writeTR_CMT_miss++;
+                    Simulator->stats->writeTR_CMT_miss_per_stream[stream_id]++;
 					domains[stream_id]->Waiting_unmapped_program_transactions.insert(std::pair<LPA_type, NVM_Transaction_Flash*>(transaction->LPA, transaction));
 				}
 			}
@@ -633,7 +634,7 @@ namespace SSD_Components
 				PRINT_ERROR("Calling address allocation for a previously allocated LPA during preconditioning!")
 			}
 			allocate_plane_for_preconditioning(stream_id, (*lpa).first, plane_address);
-			if (LPA_type(Utils::Logical_Address_Partitioning_Unit::Get_share_of_physcial_pages_in_plane(plane_address.ChannelID, plane_address.ChipID, plane_address.DieID, plane_address.PlaneID) * page_no_per_plane)
+			if (LPA_type(Simulator->lapu->Get_share_of_physcial_pages_in_plane(plane_address.ChannelID, plane_address.ChipID, plane_address.DieID, plane_address.PlaneID) * page_no_per_plane)
 				> assigned_lpas[plane_address.ChannelID][plane_address.ChipID][plane_address.DieID][plane_address.PlaneID].size()) {
 				assigned_lpas[plane_address.ChannelID][plane_address.ChipID][plane_address.DieID][plane_address.PlaneID].push_back((*lpa).first);
 				lpa++;
@@ -654,7 +655,7 @@ namespace SSD_Components
 						plane_address.PlaneID = domains[stream_id]->Plane_ids[plane_cntr];
 
 						unsigned int physical_block_consumption_goal = (unsigned int)(double(block_no_per_plane - ftl->GC_and_WL_Unit->Get_minimum_number_of_free_pages_before_GC() / 2)
-							* Utils::Logical_Address_Partitioning_Unit::Get_share_of_physcial_pages_in_plane(plane_address.ChannelID, plane_address.ChipID, plane_address.DieID, plane_address.PlaneID));
+							* Simulator->lapu->Get_share_of_physcial_pages_in_plane(plane_address.ChannelID, plane_address.ChipID, plane_address.DieID, plane_address.PlaneID));
 
 						//Adjust the average
 						double model_average = 0;
@@ -792,17 +793,17 @@ namespace SSD_Components
 
 			//the mapping entry should be updated
 			stream_id_type stream_id = transaction->Stream_id;
-			Stats::total_CMT_queries++;
-			Stats::total_CMT_queries_per_stream[stream_id]++;
+			Simulator->stats->total_CMT_queries++;
+			Simulator->stats->total_CMT_queries_per_stream[stream_id]++;
 
 			//either limited or unlimited mapping
 			if (domains[stream_id]->Mapping_entry_accessible(ideal_mapping_table, stream_id, transaction->LPA)) {
-				Stats::CMT_hits++;
-				Stats::CMT_hits_per_stream[stream_id]++;
-				Stats::total_writeTR_CMT_queries++;
-				Stats::total_writeTR_CMT_queries_per_stream[stream_id]++;
-				Stats::writeTR_CMT_hits++;
-				Stats::writeTR_CMT_hits_per_stream[stream_id]++;
+				Simulator->stats->CMT_hits++;
+				Simulator->stats->CMT_hits_per_stream[stream_id]++;
+				Simulator->stats->total_writeTR_CMT_queries++;
+				Simulator->stats->total_writeTR_CMT_queries_per_stream[stream_id]++;
+				Simulator->stats->writeTR_CMT_hits++;
+				Simulator->stats->writeTR_CMT_hits_per_stream[stream_id]++;
 				domains[stream_id]->Update_mapping_info(ideal_mapping_table, stream_id, transaction->LPA, transaction->PPA, transaction->write_sectors_bitmap);
 			} else { //the else block only executed for non-ideal mapping table in which CMT has a limited capacity and mapping data is read/written from/to the flash storage
 				if (!domains[stream_id]->CMT->Check_free_slot_availability()) {
@@ -1618,10 +1619,10 @@ namespace SSD_Components
 			domains[stream_id]->DepartingMappingEntries.insert(get_MVPN(lpn, stream_id));
 			ftl->TSU->Submit_transaction(writeTR);
 
-			Stats::Total_flash_reads_for_mapping++;
-			Stats::Total_flash_writes_for_mapping++;
-			Stats::Total_flash_reads_for_mapping_per_stream[stream_id]++;
-			Stats::Total_flash_writes_for_mapping_per_stream[stream_id]++;
+			Simulator->stats->Total_flash_reads_for_mapping++;
+			Simulator->stats->Total_flash_writes_for_mapping++;
+			Simulator->stats->Total_flash_reads_for_mapping_per_stream[stream_id]++;
+			Simulator->stats->Total_flash_writes_for_mapping_per_stream[stream_id]++;
 
 			ftl->TSU->Schedule();
 		}
@@ -1655,19 +1656,23 @@ namespace SSD_Components
 			readTR->PPA = ppn;
 			ftl->TSU->Submit_transaction(readTR);
 
-			Stats::Total_flash_reads_for_mapping++;
-			Stats::Total_flash_reads_for_mapping_per_stream[stream_id]++;
+			Simulator->stats->Total_flash_reads_for_mapping++;
+			Simulator->stats->Total_flash_reads_for_mapping_per_stream[stream_id]++;
 
 			ftl->TSU->Schedule();
 		}
 	}
 
-	inline void Address_Mapping_Unit_Page_Level::handle_transaction_serviced_signal_from_PHY(NVM_Transaction_Flash* transaction)
+	inline void
+    Address_Mapping_Unit_Page_Level::handle_transaction_serviced_signal_from_PHY(Sim_Object *instance,
+                                                                                 NVM_Transaction_Flash *transaction)
 	{
 		//First check if the transaction source is Mapping Module
 		if (transaction->Source != Transaction_Source_Type::MAPPING) {
 			return;
 		}
+
+        auto _my_instance = dynamic_cast<Address_Mapping_Unit_Page_Level*>(instance);
 
 		if (_my_instance->ideal_mapping_table){
 			throw std::logic_error("There should not be any flash read/write when ideal mapping is enabled!");
@@ -1805,7 +1810,7 @@ namespace SSD_Components
 		//If there are read requests waiting behind the barrier, then MQSim assumes they can be serviced with the actual page data that is accessed during GC execution
 		auto read_tr = domains[stream_id]->Read_transactions_behind_LPA_barrier.find(lpa);
 		while (read_tr != domains[stream_id]->Read_transactions_behind_LPA_barrier.end()) {
-			handle_transaction_serviced_signal_from_PHY((*read_tr).second);
+            handle_transaction_serviced_signal_from_PHY(this, (*read_tr).second);
 			delete (*read_tr).second;
 			domains[stream_id]->Read_transactions_behind_LPA_barrier.erase(read_tr);
 			read_tr = domains[stream_id]->Read_transactions_behind_LPA_barrier.find(lpa);
@@ -1814,7 +1819,7 @@ namespace SSD_Components
 		//If there are write requests waiting behind the barrier, then MQSim assumes they can be serviced with the actual page data that is accessed during GC execution. This may not be 100% true for all write requests, but, to avoid more complexity in the simulation, we accept this assumption.
 		auto write_tr = domains[stream_id]->Write_transactions_behind_LPA_barrier.find(lpa);
 		while (write_tr != domains[stream_id]->Write_transactions_behind_LPA_barrier.end()) {
-			handle_transaction_serviced_signal_from_PHY((*write_tr).second);
+            handle_transaction_serviced_signal_from_PHY(this, (*write_tr).second);
 			delete (*write_tr).second;
 			domains[stream_id]->Write_transactions_behind_LPA_barrier.erase(write_tr);
 			write_tr = domains[stream_id]->Write_transactions_behind_LPA_barrier.find(lpa);
@@ -1841,10 +1846,10 @@ namespace SSD_Components
 					SECTOR_SIZE_IN_BYTE, NO_LPA, NO_PPA, NULL, mvpn, ((page_status_type)0x1) << sector_no_per_page, CurrentTimeStamp);
 			Convert_ppa_to_address(ppn, readTR->Address);
 			readTR->PPA = ppn;
-			Stats::Total_flash_reads_for_mapping++;
-			Stats::Total_flash_reads_for_mapping_per_stream[stream_id]++;
+			Simulator->stats->Total_flash_reads_for_mapping++;
+			Simulator->stats->Total_flash_reads_for_mapping_per_stream[stream_id]++;
 
-			handle_transaction_serviced_signal_from_PHY(readTR);
+            handle_transaction_serviced_signal_from_PHY(this, readTR);
 			
 			delete readTR;
 		}
@@ -1876,12 +1881,12 @@ namespace SSD_Components
 			NVM_Transaction_Flash_WR* writeTR = new NVM_Transaction_Flash_WR(Transaction_Source_Type::MAPPING, stream_id, SECTOR_SIZE_IN_BYTE * sector_no_per_page,
 				mvpn, mppn, NULL, mvpn, NULL, (((page_status_type)0x1) << sector_no_per_page) - 1, CurrentTimeStamp);
 
-			Stats::Total_flash_reads_for_mapping++;
-			Stats::Total_flash_writes_for_mapping++;
-			Stats::Total_flash_reads_for_mapping_per_stream[stream_id]++;
-			Stats::Total_flash_writes_for_mapping_per_stream[stream_id]++;
+			Simulator->stats->Total_flash_reads_for_mapping++;
+			Simulator->stats->Total_flash_writes_for_mapping++;
+			Simulator->stats->Total_flash_reads_for_mapping_per_stream[stream_id]++;
+			Simulator->stats->Total_flash_writes_for_mapping_per_stream[stream_id]++;
 
-			handle_transaction_serviced_signal_from_PHY(writeTR);
+            handle_transaction_serviced_signal_from_PHY(this, writeTR);
 
 			delete writeTR;
 		}

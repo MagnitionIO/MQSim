@@ -3,7 +3,8 @@
 
 namespace SSD_Components
 {
-	unsigned int Block_Pool_Slot_Type::Page_vector_size = 0;
+    std::atomic<unsigned int> mPage_vector_size = 0;
+
 	Flash_Block_Manager_Base::Flash_Block_Manager_Base(GC_and_WL_Unit_Base* gc_and_wl_unit, unsigned int max_allowed_block_erase_count, unsigned int total_concurrent_streams_no,
 		unsigned int channel_count, unsigned int chip_no_per_channel, unsigned int die_no_per_chip, unsigned int plane_no_per_die,
 		unsigned int block_no_per_plane, unsigned int page_no_per_block)
@@ -40,9 +41,9 @@ namespace SSD_Components
 							plane_manager[channelID][chipID][dieID][planeID].Blocks[blockID].Erase_transaction = NULL;
 							plane_manager[channelID][chipID][dieID][planeID].Blocks[blockID].Ongoing_user_program_count = 0;
 							plane_manager[channelID][chipID][dieID][planeID].Blocks[blockID].Ongoing_user_read_count = 0;
-							Block_Pool_Slot_Type::Page_vector_size = pages_no_per_block / (sizeof(uint64_t) * 8) + (pages_no_per_block % (sizeof(uint64_t) * 8) == 0 ? 0 : 1);
-							plane_manager[channelID][chipID][dieID][planeID].Blocks[blockID].Invalid_page_bitmap = new uint64_t[Block_Pool_Slot_Type::Page_vector_size];
-							for (unsigned int i = 0; i < Block_Pool_Slot_Type::Page_vector_size; i++) {
+							mPage_vector_size = pages_no_per_block / (sizeof(uint64_t) * 8) + (pages_no_per_block % (sizeof(uint64_t) * 8) == 0 ? 0 : 1);
+							plane_manager[channelID][chipID][dieID][planeID].Blocks[blockID].Invalid_page_bitmap = new uint64_t[mPage_vector_size];
+							for (unsigned int i = 0; i < mPage_vector_size; i++) {
 								plane_manager[channelID][chipID][dieID][planeID].Blocks[blockID].Invalid_page_bitmap[i] = All_VALID_PAGE;
 							}
 							plane_manager[channelID][chipID][dieID][planeID].Add_to_free_block_pool(&plane_manager[channelID][chipID][dieID][planeID].Blocks[blockID], false);
@@ -94,7 +95,7 @@ namespace SSD_Components
 		Current_page_write_index = 0;
 		Invalid_page_count = 0;
 		Erase_count++;
-		for (unsigned int i = 0; i < Block_Pool_Slot_Type::Page_vector_size; i++) {
+		for (unsigned int i = 0; i < mPage_vector_size; i++) {
 			Invalid_page_bitmap[i] = All_VALID_PAGE;
 		}
 		Stream_id = NO_STREAM;

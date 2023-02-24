@@ -93,7 +93,11 @@ void IO_Flow_Parameter_Set::XML_serialize(Utils::XmlWriter& xmlwriter)
 void IO_Flow_Parameter_Set::XML_deserialize(rapidxml::xml_node<> *node)
 {
 	try {
+#ifndef SINGLETON
 		for (auto param = node->first_node(); param; param = param->next_sibling()) {
+#else
+            auto param = node;
+#endif
 			if (strcmp(param->name(), "Device_Level_Data_Caching_Mode") == 0) {
 				std::string val = param->value();
 				std::transform(val.begin(), val.end(), val.begin(), ::toupper);
@@ -126,34 +130,37 @@ void IO_Flow_Parameter_Set::XML_deserialize(rapidxml::xml_node<> *node)
 				}
 			} else if (strcmp(param->name(), "Channel_IDs") == 0) {
 				std::set<int> ids;
-				char tmp[1000], *tmp2;
-				strncpy(tmp, param->value(), 1000);
-				std::string id = strtok(tmp, ",");
+                char *str = param->value();
+                char *token = NULL, *next_token = NULL;
+
+				token = strtok_r (str, ",", &next_token);
+                int id_counter = 0;
 				while (1) {
 					std::string::size_type sz;
+                    std::string id = token;
 					ids.insert(std::stoi(id, &sz));
-					tmp2 = strtok(NULL, ",");
-					if (tmp2 == NULL) {
+                    token = strtok_r (NULL, ",", &next_token);
+					if (token == NULL) {
 						break;
-					} else {
-						id = tmp2;
 					}
 				}
 				Channel_No = (int)ids.size();
 				Channel_IDs = new flash_block_ID_type[Channel_No];
+
 				int i = 0;
-				for (auto it = ids.begin(); it != ids.end(); it++) {
-					Channel_IDs[i++] = *it;
+				for (int it : ids) {
+					Channel_IDs[i++] = it;
 				}
 			} else if (strcmp(param->name(), "Chip_IDs") == 0) {
 				std::set<int> ids;
 				char tmp[1000], *tmp2;
+                char *next_token = nullptr;
 				strncpy(tmp, param->value(), 1000);
-				std::string id = strtok(tmp, ",");
+				std::string id = strtok_r(tmp, ",", &next_token);
 				while (1) {
 					std::string::size_type sz;
 					ids.insert(std::stoi(id, &sz));
-					tmp2 = strtok(NULL, ",");
+					tmp2 = strtok_r(NULL, ",", &next_token);
 					if (tmp2 == NULL) {
 						break;
 					} else {
@@ -163,18 +170,18 @@ void IO_Flow_Parameter_Set::XML_deserialize(rapidxml::xml_node<> *node)
 				Chip_No = (int)ids.size();
 				Chip_IDs = new flash_block_ID_type[Chip_No];
 				int i = 0;
-				for (auto it = ids.begin(); it != ids.end(); it++) {
-					Chip_IDs[i++] = *it;
+				for (int it : ids) {
+					Chip_IDs[i++] = it;
 				}
 			} else if (strcmp(param->name(), "Die_IDs") == 0) {
 				std::set<int> ids;
-				char tmp[1000], *tmp2;
+				char tmp[1000], *tmp2, *next_token = nullptr;
 				strncpy(tmp, param->value(), 1000);
-				std::string id = strtok(tmp, ",");
+				std::string id = strtok_r(tmp, ",", &next_token);
 				while (1) {
 					std::string::size_type sz;
 					ids.insert(std::stoi(id, &sz));
-					tmp2 = strtok(NULL, ",");
+					tmp2 = strtok_r(NULL, ",", &next_token);
 					if (tmp2 == NULL) {
 						break;
 					} else {
@@ -184,18 +191,18 @@ void IO_Flow_Parameter_Set::XML_deserialize(rapidxml::xml_node<> *node)
 				Die_No = (int)ids.size();
 				Die_IDs = new flash_block_ID_type[Die_No];
 				int i = 0;
-				for (auto it = ids.begin(); it != ids.end(); it++) {
-					Die_IDs[i++] = *it;
+				for (int it : ids) {
+					Die_IDs[i++] = it;
 				}
 			} else if (strcmp(param->name(), "Plane_IDs") == 0) {
 				std::set<int> ids;
-				char tmp[1000], *tmp2;
+				char tmp[1000], *tmp2, *next_token = nullptr;
 				strncpy(tmp, param->value(), 1000);
-				std::string id = strtok(tmp, ",");
+				std::string id = strtok_r(tmp, ",", &next_token);
 				while (1) {
 					std::string::size_type sz;
 					ids.insert(std::stoi(id, &sz));
-					tmp2 = strtok(NULL, ",");
+					tmp2 = strtok_r(NULL, ",", &next_token);
 					if (tmp2 == NULL) {
 						break;
 					} else {
@@ -205,14 +212,16 @@ void IO_Flow_Parameter_Set::XML_deserialize(rapidxml::xml_node<> *node)
 				Plane_No = (int)ids.size();
 				Plane_IDs = new flash_block_ID_type[Plane_No];
 				int i = 0;
-				for (auto it = ids.begin(); it != ids.end(); it++) {
-					Plane_IDs[i++] = *it;
+				for (int it : ids) {
+					Plane_IDs[i++] = it;
 				}
 			} else if (strcmp(param->name(), "Initial_Occupancy_Percentage") == 0) {
 				std::string val = param->value();
 				Initial_Occupancy_Percentage = std::stoul(val);
 			}
+#ifndef SINGLETON
 		}
+#endif
 	} catch (...) {
 		PRINT_ERROR("Error in IO_Flow_Parameter_Set!")
 	}
@@ -256,6 +265,8 @@ void IO_Flow_Parameter_Set_Synthetic::XML_serialize(Utils::XmlWriter& xmlwriter)
 		case Utils::Address_Distribution_Type::RANDOM_UNIFORM:
 			val = "RANDOM_UNIFORM";
 			break;
+        default:
+            break;
 	}
 	xmlwriter.Write_attribute_string(attr, val);
 	 
@@ -469,4 +480,9 @@ void IO_Flow_Parameter_Set_Trace_Based::XML_deserialize(rapidxml::xml_node<> *no
 	} catch (...) {
 		PRINT_ERROR("Error in IO_Flow_Parameter_Set_Trace_Based!")
 	}
+}
+
+void IO_Flow_Parameter_Set_Integration_Based::XML_deserialize(rapidxml::xml_node<> *node)
+{
+    IO_Flow_Parameter_Set::XML_deserialize(node);
 }

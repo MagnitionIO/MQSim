@@ -6,6 +6,7 @@
 #include <fstream>
 #include "IO_Flow_Base.h"
 #include "ASCII_Trace_Definition.h"
+#include "lib/libmqsim.h"
 
 namespace Host_Components
 {
@@ -18,14 +19,19 @@ public:
 						HostInterface_Types SSD_device_type, PCIe_Root_Complex *pcie_root_complex, SATA_HBA *sata_hba,
 						bool enabled_logging, sim_time_type logging_period, std::string logging_file_path);
 	~IO_Flow_Trace_Based();
-	Host_IO_Request *Generate_next_request();
-	void NVMe_consume_io_request(Completion_Queue_Entry *);
-	void SATA_consume_io_request(Host_IO_Request *);
-	void Start_simulation();
-	void Validate_simulation_config();
-	void Execute_simulator_event(MQSimEngine::Sim_Event *);
-	void Get_statistics(Utils::Workload_Statistics &stats, LPA_type (*Convert_host_logical_address_to_device_address)(LHA_type lha),
-						page_status_type (*Find_NVM_subunit_access_bitmap)(LHA_type lha));
+	Host_IO_Request *Generate_next_request() override;
+	void NVMe_consume_io_request(Completion_Queue_Entry *) override;
+	void SATA_consume_io_request(Host_IO_Request *) override;
+	void Start_simulation() override;
+	void Validate_simulation_config() override;
+	void Execute_simulator_event(MQSimEngine::Sim_Event *) override;
+	void Get_statistics(Utils::Workload_Statistics& stats, MQSimEngine::Sim_Object *dev, LPA_type(*Convert_host_logical_address_to_device_address)(MQSimEngine::Sim_Object *ins, LHA_type lha),
+                        page_status_type(*Find_NVM_subunit_access_bitmap)(MQSimEngine::Sim_Object *ins, LHA_type lha)) override;
+
+#ifdef BUILD_LIB
+    Host_IO_Request* Generate_Sim_Request(request_type_t *req);
+    void Execute_simulator_event(bool dummy, request_type_t *req);
+#endif
 
 private:
 	Trace_Time_Unit time_unit;

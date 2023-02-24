@@ -23,9 +23,9 @@ namespace SSD_Components
 		/*This function is used for implementing preemptible GC execution. If for a flash chip the free block
 		* pool becomes close to empty, then the GC requests for that flash chip should be prioritized and
 		* GC should go on in non-preemptible mode.*/
-		bool GC_is_in_urgent_mode(const NVM::FlashMemory::Flash_Chip*);
+		bool GC_is_in_urgent_mode(const NVM::FlashMemory::Flash_Chip*) override;
 
-		void Check_gc_required(const unsigned int free_block_pool_size, const NVM::FlashMemory::Physical_Page_Address& plane_address);
+		void Check_gc_required(const unsigned int free_block_pool_size, const NVM::FlashMemory::Physical_Page_Address& plane_address) override;
 	private:
 		NVM_PHY_ONFI * flash_controller;
 	};

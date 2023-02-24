@@ -94,7 +94,7 @@ namespace SSD_Components
 	void Data_Cache_Manager_Flash_Advanced::Setup_triggers()
 	{
 		Data_Cache_Manager_Base::Setup_triggers();
-		flash_controller->ConnectToTransactionServicedSignal(handle_transaction_serviced_signal_from_PHY);
+        flash_controller->ConnectToTransactionServicedSignal(this, handle_transaction_serviced_signal_from_PHY);
 	}
 
 	void Data_Cache_Manager_Flash_Advanced::Do_warmup(std::vector<Utils::Workload_Statistics*> workload_stats)
@@ -124,6 +124,8 @@ namespace SSD_Components
 									break;
 								case Utils::Address_Distribution_Type::RANDOM_UNIFORM:
 									break;
+                                default:
+                                    break;
 								}
 							} else {
 							}
@@ -134,6 +136,8 @@ namespace SSD_Components
 							} else {
 							}
 							break;
+                        default:
+                            break;
 					}
 				}
 				break;
@@ -168,6 +172,8 @@ namespace SSD_Components
 										break;
 									case Utils::Address_Distribution_Type::RANDOM_UNIFORM:
 										break;
+                                    default:
+                                        break;
 								}
 							} else {
 							}
@@ -178,16 +184,20 @@ namespace SSD_Components
 							} else {
 							}
 							break;
+                        default:
+                            break;
 					}
 				}
 				break;
+            default:
+                break;
 		}
 	}
 
 	void Data_Cache_Manager_Flash_Advanced::process_new_user_request(User_Request* user_request)
 	{
 		//This condition shouldn't happen, but we check it
-		if (user_request->Transaction_list.size() == 0) {
+		if (user_request->Transaction_list.empty()) {
 			return;
 		}
 
@@ -342,6 +352,7 @@ namespace SSD_Components
 
 		//If any writeback should be performed, then issue flash write transactions
 		if (writeback_transactions.size() > 0) {
+
 					static_cast<FTL*>(nvm_firmware)->Address_Mapping_Unit->Translate_lpa_to_ppa_and_dispatch(writeback_transactions);
 		}
 		
@@ -352,8 +363,10 @@ namespace SSD_Components
 		}
 	}
 
-	void Data_Cache_Manager_Flash_Advanced::handle_transaction_serviced_signal_from_PHY(NVM_Transaction_Flash* transaction)
+	void Data_Cache_Manager_Flash_Advanced::handle_transaction_serviced_signal_from_PHY(Sim_Object *instance,
+                                                                                        NVM_Transaction_Flash *transaction)
 	{
+        auto _my_instance = dynamic_cast<Data_Cache_Manager_Flash_Advanced*>(instance);
 		//First check if the transaction source is a user request or the cache itself
 		if (transaction->Source != Transaction_Source_Type::USERIO && transaction->Source != Transaction_Source_Type::CACHE) {
 			return;
@@ -371,7 +384,7 @@ namespace SSD_Components
 				return;
 			}
 
-			switch (Data_Cache_Manager_Flash_Advanced::caching_mode_per_input_stream[transaction->Stream_id])
+			switch (_my_instance->caching_mode_per_input_stream[transaction->Stream_id])
 			{
 				case Caching_Mode::TURNED_OFF:
 				case Caching_Mode::WRITE_CACHE:
@@ -436,7 +449,7 @@ namespace SSD_Components
 				}
 			}
 		} else {//This is a write request
-			switch (Data_Cache_Manager_Flash_Advanced::caching_mode_per_input_stream[transaction->Stream_id])
+			switch (_my_instance->Data_Cache_Manager_Flash_Advanced::caching_mode_per_input_stream[transaction->Stream_id])
 			{
 				case Caching_Mode::TURNED_OFF:
 				case Caching_Mode::READ_CACHE:
