@@ -7,7 +7,7 @@ SRC_DIR   := $(addprefix src/,$(MODULES)) src
 BUILD_DIR := $(addprefix build/,$(MODULES)) build
 
 SRC       := $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.cpp))
-SRC       := src/main.cpp $(SRC)
+#SRC       := src/main.cpp $(SRC)
 OBJ       := $(patsubst src/%.cpp,build/%.o,$(SRC))
 INCLUDES  := $(addprefix -I,$(SRC_DIR))
 
@@ -20,10 +20,14 @@ endef
 
 .PHONY: all checkdirs clean
 
-all: checkdirs MQSim
+all: checkdirs libMQSim.so MQSim
 
-MQSim: $(OBJ)
-	$(LD) $^ -o $@
+libMQSim.so: $(OBJ)
+	$(LD) $(CC_FLAGS) -shared $^ -o $@ -lz
+
+
+MQSim: libMQSim.so
+	$(CC) $(CC_FLAGS) src/main.cpp libMQSim.so -o MQSim
 
 checkdirs: $(BUILD_DIR)
 
