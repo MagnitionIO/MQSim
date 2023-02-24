@@ -1,8 +1,8 @@
 CC        := g++
 LD        := g++
-CC_FLAGS := -std=c++11 -O3 -g
+CC_FLAGS := -std=c++11 -O3 -g -Wno-gnu-array-member-paren-init
 
-MODULES   := exec host nvm_chip nvm_chip/flash_memory sim ssd utils
+MODULES   := exec host nvm_chip nvm_chip/flash_memory sim ssd utils integration
 SRC_DIR   := $(addprefix src/,$(MODULES)) src
 BUILD_DIR := $(addprefix build/,$(MODULES)) build
 
