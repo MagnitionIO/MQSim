@@ -26,6 +26,7 @@ public:
 	void XML_serialize(Utils::XmlWriter& xmlwrite);
 	void XML_deserialize(rapidxml::xml_node<> *node);
 private:
+    void XML_deserializer(rapidxml::xml_node<> *param);
 };
 
 class IO_Flow_Parameter_Set_Synthetic : public IO_Flow_Parameter_Set

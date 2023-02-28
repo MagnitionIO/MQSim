@@ -1,6 +1,6 @@
 CC        := g++
 LD        := g++
-CC_FLAGS := -std=c++17 -fPIC -g -Wno-gnu-array-member-paren-init -O0 -g3 -ggdb3 -DSINGLETON
+CC_FLAGS := -std=c++17 -fPIC -g -Wno-gnu-array-member-paren-init -O0 -g3 -ggdb3 -DSINGLETON -O0
 
 MODULES   := exec host nvm_chip nvm_chip/flash_memory sim ssd utils lib
 SRC_DIR   := $(addprefix src/,$(MODULES)) src
@@ -37,7 +37,6 @@ install: all
 	@cp -v src/lib/libmqsim.h $(INC_PATH)/libMQSim
 	@cp -v src/lib/base.h $(INC_PATH)/libMQSim
 	@cp -v src/lib/logger.h $(INC_PATH)/libMQSim
-	@cp -v src/lib/mag_logger.h $(INC_PATH)/libMQSim
 	@cp -v src/lib/data_store.h $(INC_PATH)/libMQSim
 	@cp -v libMQSim.so $(LIB_PATH)
 	@mkdir -p $(CFG_PATH)/libMQSim
@@ -52,6 +51,6 @@ $(BUILD_DIR):
 
 clean:
 	rm -rf $(BUILD_DIR)
-	rm -f MQSim
+	rm -f MQSim libMQSim.so
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call make-goal,$(bdir))))

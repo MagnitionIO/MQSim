@@ -5,18 +5,11 @@
 #include "../utils/Logical_Address_Partitioning_Unit.h"
 #include "IO_Flow_Integration_Based.h"
 
-#ifndef SINGLETON
-#define SINGLETON
-#endif
-
 #ifndef LIBMQ_TEST
 #define LIBMQ_TEST
 #endif
 
-#include "lib/integration.h"
 #include "IO_Flow_Integration_Based.h"
-
-extern INTEGRATION_BIT;
 
 namespace MQSimEngine {
 
@@ -47,7 +40,7 @@ namespace MQSimEngine {
     }
 
     void Engine::RemoveObject(Sim_Object *obj) {
-        std::unordered_map<sim_object_id_type, Sim_Object *>::iterator it = _ObjectList.find(obj->ID());
+        auto it = _ObjectList.find(obj->ID());
         if (it == _ObjectList.end()) {
             throw std::invalid_argument("Removing an unregistered object.");
         }
@@ -139,24 +132,18 @@ namespace MQSimEngine {
     void Engine::Start_simulation() {
         started = true;
 
-        for (std::unordered_map<sim_object_id_type, Sim_Object *>::iterator obj = _ObjectList.begin();
-             obj != _ObjectList.end();
-             ++obj) {
-            if (!obj->second->IsTriggersSetUp()) {
-                obj->second->Setup_triggers();
+        for (auto & obj : _ObjectList) {
+            if (!obj.second->IsTriggersSetUp()) {
+                obj.second->Setup_triggers();
             }
         }
 
-        for (std::unordered_map<sim_object_id_type, Sim_Object *>::iterator obj = _ObjectList.begin();
-             obj != _ObjectList.end();
-             ++obj) {
-            obj->second->Validate_simulation_config();
+        for (auto & obj : _ObjectList) {
+            obj.second->Validate_simulation_config();
         }
 
-        for (std::unordered_map<sim_object_id_type, Sim_Object *>::iterator obj = _ObjectList.begin();
-             obj != _ObjectList.end();
-             ++obj) {
-            obj->second->Start_simulation();
+        for (auto & obj : _ObjectList) {
+            obj.second->Start_simulation();
         }
 
         Sim_Event *ev = NULL;

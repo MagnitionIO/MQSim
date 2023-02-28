@@ -9,7 +9,7 @@
 #include <sstream>
 #include "lib/logger.h"
 
-static void read_configuration_parameters(const char *ssd_config_file_path, Execution_Parameter_Set **exec_params) {
+static void read_config_parameters(const char *ssd_config_file_path, Execution_Parameter_Set **exec_params) {
     std::ifstream ssd_config_file;
     ssd_config_file.open(ssd_config_file_path);
 

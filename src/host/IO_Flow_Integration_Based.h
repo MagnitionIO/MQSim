@@ -8,7 +8,6 @@
 #include "ASCII_Trace_Definition.h"
 #include "IO_Flow_Base.h"
 #include "../lib/libmqsim.h"
-#include "lib/integration.h"
 #include <fstream>
 #include <iostream>
 #include <string>

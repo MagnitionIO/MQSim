@@ -3,7 +3,7 @@
 //
 
 #include "base.h"
-#include "mag_logger.h"
+#include "logger.h"
 #include <pthread.h>
 #include <unistd.h>
 #include <assert.h>

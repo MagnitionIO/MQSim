@@ -16,7 +16,7 @@ namespace MQSimEngine {
 	{
 		friend class EventTree;
 	public:
-		Engine()
+        Engine()
 		{
 			this->_EventList = new EventTree;
 			started = false;
@@ -50,9 +50,9 @@ namespace MQSimEngine {
 
     private:
 		sim_time_type _sim_time = 0;
-		EventTree* _EventList;
-		std::unordered_map<sim_object_id_type, Sim_Object*> _ObjectList;
-        std::set<completion_info_t*> done_queue;
+		EventTree* _EventList{};
+		std::unordered_map<sim_object_id_type, Sim_Object*> _ObjectList{};
+        std::set<completion_info_t*> done_queue{};
 
         bool stop{};
 		bool started;

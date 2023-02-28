@@ -4,6 +4,8 @@
 #include <cstring>
 #include <algorithm>
 
+DEFINE_INTEGRATION_BIT;
+
 //All serialization and deserialization functions should be replaced by a C++ reflection implementation
 void IO_Flow_Parameter_Set::XML_serialize(Utils::XmlWriter& xmlwriter)
 {
@@ -90,138 +92,142 @@ void IO_Flow_Parameter_Set::XML_serialize(Utils::XmlWriter& xmlwriter)
 	xmlwriter.Write_attribute_string(attr, val);
 }
 
+void IO_Flow_Parameter_Set::XML_deserializer(rapidxml::xml_node<> *param) {
+    if (strcmp(param->name(), "Device_Level_Data_Caching_Mode") == 0) {
+        std::string val = param->value();
+        std::transform(val.begin(), val.end(), val.begin(), ::toupper);
+        if (strcmp(val.c_str(), "TURNED_OFF") == 0) {
+            Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::TURNED_OFF;
+        } else if (strcmp(val.c_str(), "WRITE_CACHE") == 0) {
+            Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::WRITE_CACHE;
+        } else if (strcmp(val.c_str(), "READ_CACHE") == 0) {
+            Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::READ_CACHE;
+        } else if (strcmp(val.c_str(), "WRITE_READ_CACHE") == 0) {
+            Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::WRITE_READ_CACHE;
+        } else {
+            PRINT_ERROR("Wrong caching mode definition for input flow")
+        }
+    }
+    else if (strcmp(param->name(), "Priority_Class") == 0)
+    {
+        std::string val = param->value();
+        std::transform(val.begin(), val.end(), val.begin(), ::toupper);
+        if (strcmp(val.c_str(), "URGENT") == 0) {
+            Priority_Class = IO_Flow_Priority_Class::URGENT;
+        } else if (strcmp(val.c_str(), "HIGH") == 0) {
+            Priority_Class = IO_Flow_Priority_Class::HIGH;
+        } else if (strcmp(val.c_str(), "MEDIUM") == 0) {
+            Priority_Class = IO_Flow_Priority_Class::MEDIUM;
+        } else if (strcmp(val.c_str(), "LOW") == 0) {
+            Priority_Class = IO_Flow_Priority_Class::LOW;
+        } else {
+            PRINT_ERROR("Wrong priority class definition for input flow")
+        }
+    } else if (strcmp(param->name(), "Channel_IDs") == 0) {
+        std::set<int> ids;
+        char *str = param->value();
+        char *token = NULL, *next_token = NULL;
+
+        token = strtok_r (str, ",", &next_token);
+        int id_counter = 0;
+        while (1) {
+            std::string::size_type sz;
+            std::string id = token;
+            ids.insert(std::stoi(id, &sz));
+            token = strtok_r (NULL, ",", &next_token);
+            if (token == NULL) {
+                break;
+            }
+        }
+        Channel_No = (int)ids.size();
+        Channel_IDs = new flash_block_ID_type[Channel_No];
+
+        int i = 0;
+        for (int it : ids) {
+            Channel_IDs[i++] = it;
+        }
+    } else if (strcmp(param->name(), "Chip_IDs") == 0) {
+        std::set<int> ids;
+        char tmp[1000], *tmp2;
+        char *next_token = nullptr;
+        strncpy(tmp, param->value(), 1000);
+        std::string id = strtok_r(tmp, ",", &next_token);
+        while (1) {
+            std::string::size_type sz;
+            ids.insert(std::stoi(id, &sz));
+            tmp2 = strtok_r(NULL, ",", &next_token);
+            if (tmp2 == NULL) {
+                break;
+            } else {
+                id = tmp2;
+            }
+        }
+        Chip_No = (int)ids.size();
+        Chip_IDs = new flash_block_ID_type[Chip_No];
+        int i = 0;
+        for (int it : ids) {
+            Chip_IDs[i++] = it;
+        }
+    } else if (strcmp(param->name(), "Die_IDs") == 0) {
+        std::set<int> ids;
+        char tmp[1000], *tmp2, *next_token = nullptr;
+        strncpy(tmp, param->value(), 1000);
+        std::string id = strtok_r(tmp, ",", &next_token);
+        while (1) {
+            std::string::size_type sz;
+            ids.insert(std::stoi(id, &sz));
+            tmp2 = strtok_r(NULL, ",", &next_token);
+            if (tmp2 == NULL) {
+                break;
+            } else {
+                id = tmp2;
+            }
+        }
+        Die_No = (int)ids.size();
+        Die_IDs = new flash_block_ID_type[Die_No];
+        int i = 0;
+        for (int it : ids) {
+            Die_IDs[i++] = it;
+        }
+    } else if (strcmp(param->name(), "Plane_IDs") == 0) {
+        std::set<int> ids;
+        char tmp[1000], *tmp2, *next_token = nullptr;
+        strncpy(tmp, param->value(), 1000);
+        std::string id = strtok_r(tmp, ",", &next_token);
+        while (1) {
+            std::string::size_type sz;
+            ids.insert(std::stoi(id, &sz));
+            tmp2 = strtok_r(NULL, ",", &next_token);
+            if (tmp2 == NULL) {
+                break;
+            } else {
+                id = tmp2;
+            }
+        }
+        Plane_No = (int)ids.size();
+        Plane_IDs = new flash_block_ID_type[Plane_No];
+        int i = 0;
+        for (int it : ids) {
+            Plane_IDs[i++] = it;
+        }
+    } else if (strcmp(param->name(), "Initial_Occupancy_Percentage") == 0) {
+        std::string val = param->value();
+        Initial_Occupancy_Percentage = std::stoul(val);
+    }
+}
+
 void IO_Flow_Parameter_Set::XML_deserialize(rapidxml::xml_node<> *node)
 {
 	try {
-#ifndef SINGLETON
-		for (auto param = node->first_node(); param; param = param->next_sibling()) {
-#else
-            auto param = node;
-#endif
-			if (strcmp(param->name(), "Device_Level_Data_Caching_Mode") == 0) {
-				std::string val = param->value();
-				std::transform(val.begin(), val.end(), val.begin(), ::toupper);
-				if (strcmp(val.c_str(), "TURNED_OFF") == 0) {
-					Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::TURNED_OFF;
-				} else if (strcmp(val.c_str(), "WRITE_CACHE") == 0) {
-					Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::WRITE_CACHE;
-				} else if (strcmp(val.c_str(), "READ_CACHE") == 0) {
-					Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::READ_CACHE;
-				} else if (strcmp(val.c_str(), "WRITE_READ_CACHE") == 0) {
-					Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::WRITE_READ_CACHE;
-				} else {
-					PRINT_ERROR("Wrong caching mode definition for input flow")
-				}
-			}
-			else if (strcmp(param->name(), "Priority_Class") == 0)
-			{
-				std::string val = param->value();
-				std::transform(val.begin(), val.end(), val.begin(), ::toupper);
-				if (strcmp(val.c_str(), "URGENT") == 0) {
-					Priority_Class = IO_Flow_Priority_Class::URGENT;
-				} else if (strcmp(val.c_str(), "HIGH") == 0) {
-					Priority_Class = IO_Flow_Priority_Class::HIGH;
-				} else if (strcmp(val.c_str(), "MEDIUM") == 0) {
-					Priority_Class = IO_Flow_Priority_Class::MEDIUM;
-				} else if (strcmp(val.c_str(), "LOW") == 0) {
-					Priority_Class = IO_Flow_Priority_Class::LOW;
-				} else {
-					PRINT_ERROR("Wrong priority class definition for input flow")
-				}
-			} else if (strcmp(param->name(), "Channel_IDs") == 0) {
-				std::set<int> ids;
-                char *str = param->value();
-                char *token = NULL, *next_token = NULL;
-
-				token = strtok_r (str, ",", &next_token);
-                int id_counter = 0;
-				while (1) {
-					std::string::size_type sz;
-                    std::string id = token;
-					ids.insert(std::stoi(id, &sz));
-                    token = strtok_r (NULL, ",", &next_token);
-					if (token == NULL) {
-						break;
-					}
-				}
-				Channel_No = (int)ids.size();
-				Channel_IDs = new flash_block_ID_type[Channel_No];
-
-				int i = 0;
-				for (int it : ids) {
-					Channel_IDs[i++] = it;
-				}
-			} else if (strcmp(param->name(), "Chip_IDs") == 0) {
-				std::set<int> ids;
-				char tmp[1000], *tmp2;
-                char *next_token = nullptr;
-				strncpy(tmp, param->value(), 1000);
-				std::string id = strtok_r(tmp, ",", &next_token);
-				while (1) {
-					std::string::size_type sz;
-					ids.insert(std::stoi(id, &sz));
-					tmp2 = strtok_r(NULL, ",", &next_token);
-					if (tmp2 == NULL) {
-						break;
-					} else {
-						id = tmp2;
-					}
-				}
-				Chip_No = (int)ids.size();
-				Chip_IDs = new flash_block_ID_type[Chip_No];
-				int i = 0;
-				for (int it : ids) {
-					Chip_IDs[i++] = it;
-				}
-			} else if (strcmp(param->name(), "Die_IDs") == 0) {
-				std::set<int> ids;
-				char tmp[1000], *tmp2, *next_token = nullptr;
-				strncpy(tmp, param->value(), 1000);
-				std::string id = strtok_r(tmp, ",", &next_token);
-				while (1) {
-					std::string::size_type sz;
-					ids.insert(std::stoi(id, &sz));
-					tmp2 = strtok_r(NULL, ",", &next_token);
-					if (tmp2 == NULL) {
-						break;
-					} else {
-						id = tmp2;
-					}
-				}
-				Die_No = (int)ids.size();
-				Die_IDs = new flash_block_ID_type[Die_No];
-				int i = 0;
-				for (int it : ids) {
-					Die_IDs[i++] = it;
-				}
-			} else if (strcmp(param->name(), "Plane_IDs") == 0) {
-				std::set<int> ids;
-				char tmp[1000], *tmp2, *next_token = nullptr;
-				strncpy(tmp, param->value(), 1000);
-				std::string id = strtok_r(tmp, ",", &next_token);
-				while (1) {
-					std::string::size_type sz;
-					ids.insert(std::stoi(id, &sz));
-					tmp2 = strtok_r(NULL, ",", &next_token);
-					if (tmp2 == NULL) {
-						break;
-					} else {
-						id = tmp2;
-					}
-				}
-				Plane_No = (int)ids.size();
-				Plane_IDs = new flash_block_ID_type[Plane_No];
-				int i = 0;
-				for (int it : ids) {
-					Plane_IDs[i++] = it;
-				}
-			} else if (strcmp(param->name(), "Initial_Occupancy_Percentage") == 0) {
-				std::string val = param->value();
-				Initial_Occupancy_Percentage = std::stoul(val);
-			}
-#ifndef SINGLETON
-		}
-#endif
+        if (TEST_INTEGRATION_BIT) {
+            XML_deserializer(node);
+        }
+        else
+        {
+            for (auto param = node->first_node(); param; param = param->next_sibling()) {
+                XML_deserializer(param);
+            }
+        }
 	} catch (...) {
 		PRINT_ERROR("Error in IO_Flow_Parameter_Set!")
 	}

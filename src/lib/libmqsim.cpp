@@ -9,11 +9,6 @@
 #include "../exec/SSD_Device.h"
 #include "../exec/Host_System.h"
 
-#ifndef SINGLETON
-#define SINGLETON
-#endif
-
-#include "integration.h"
 #include "config.h"
 #include "data_store.h"
 #include "safe_unordered_map.h"
@@ -23,6 +18,8 @@
 #define GET_ENGINE(x) ((MQSimEngine::Engine*) GET_SYSTEM(x)->engine)
 #define GET_SYSTEM(x) ((system_t*) (x))
 #define GET_DATASTORE(x) (GET_SYSTEM(x)->datastore)
+
+bool is_integration_enabled = false;
 
 using EngineInstanceMap_t = safe_unorderd_map<tid_t, MQSimEngine::Engine *>;
 EngineInstanceMap_t EngineMap;
@@ -61,6 +58,29 @@ IO_Flow_Parameter_Set_Integration_Based *create_integration_flow() {
     return flow;
 }
 
+EXTERN_C void register_engine(void *handle) {
+    EngineMap.AddItem(get_tid(), GET_ENGINE(handle));
+}
+
+EXTERN_C void deregister_engine(void *handle) {
+    EngineMap.RemoveItem(get_tid());
+}
+
+EXTERN_C void register_datastore(void *handle) {
+    DataStoreMap.AddItem(get_tid(), GET_DATASTORE(handle));
+}
+
+EXTERN_C void deregister_datastore(void *handle) {
+    DataStoreMap.RemoveItem(get_tid());
+}
+
+EXTERN_C void register_host(void *handle) {
+    HostMap.AddItem(get_tid(), GET_HOST(handle));
+}
+
+EXTERN_C void deregister_host(void *handle) {
+    HostMap.RemoveItem(get_tid());
+}
 
 EXTERN_C bool init_system(system_t **handle, const char *ssd_cfg) {
     if (*handle) {
@@ -70,7 +90,7 @@ EXTERN_C bool init_system(system_t **handle, const char *ssd_cfg) {
     *handle = _calloc(1, system_t);
     auto exec_params = new Execution_Parameter_Set; // throws std::bad_alloc
 
-    read_configuration_parameters(ssd_cfg, &exec_params);
+    read_config_parameters(ssd_cfg, &exec_params);
     exec_params->Host_Configuration.IO_Flow_Definitions.push_back(create_integration_flow());
 
     GET_SYSTEM(*handle)->engine = new MQSimEngine::Engine;
@@ -97,35 +117,10 @@ EXTERN_C bool init_system(system_t **handle, const char *ssd_cfg) {
     GET_DATASTORE(*handle) = new_data_store();
     *handle = GET_SYSTEM(*handle);
 
+    is_integration_enabled = true;
+
     log_debug ("%s", "System is initialized!!");
     return true;
-}
-
-pthread_t simulator_engine;
-
-EXTERN_C void ignite_system() {
-    // Start Servicing Thread
-    pthread_create(&simulator_engine, NULL, &MQSimEngine::Engine::StartServicingThread, NULL);
-}
-
-EXTERN_C bool set_callbacks(cb_f clock, done_cb_f req_complete, done_cb_f timer) {
-    STATELESS_CALL(MAGNITION, set_master_clock, clock);
-    STATELESS_CALL(MAGNITION, set_done_callback, req_complete);
-    STATELESS_CALL(MAGNITION, register_timer_callback, timer);
-    STATELESS_CALL0(MAGNITION, notify);
-    return true;
-}
-
-EXTERN_C void timer_fired(uint64_t requested_time) {
-    printf("Timer fired for time: %llu\n", requested_time);
-    STATELESS_CALL(MAGNITION, notify);
-}
-
-
-EXTERN_C bool dispatch_request(request_type_t *req) {
-    auto ret = STATEFUL_CALL(MAGNITION->controller, add_job, req);
-    STATELESS_CALL0(MAGNITION, notify);
-    return ret;
 }
 
 EXTERN_C void destroy(system_t *handle) {
@@ -136,8 +131,8 @@ EXTERN_C void destroy(system_t *handle) {
     delete GET_HOST(handle);
     delete GET_ENGINE(handle);
     clear_store(GET_DATASTORE(handle), true);
-    STATELESS_CALL(MAGNITION, free, GET_DATASTORE(handle));
-    STATELESS_CALL(MAGNITION, free, handle);
+    free(GET_DATASTORE(handle));
+    free(handle);
     printf("Destroyed %p!!\n", handle);
 }
 

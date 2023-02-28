@@ -13,6 +13,10 @@ enum kREQUEST_TYPE {
     INVALID = -1, WRITE = 0, READ
 };
 
+#define DEFINE_INTEGRATION_BIT extern bool is_integration_enabled;
+
+#define TEST_INTEGRATION_BIT (is_integration_enabled == true)
+
 typedef struct request_type {
 #ifdef __cplusplus
 
@@ -100,5 +104,14 @@ EXTERN_C uint64_t getSimTime(system_t *handle);
 EXTERN_C void print_handle(system_t *handle);
 
 EXTERN_C void *getNextStoreEntry(system_t *handle);
+
+EXTERN_C void register_engine(void *handle);
+EXTERN_C void deregister_engine(void *handle);
+
+EXTERN_C void register_datastore(void *handle);
+EXTERN_C void deregister_datastore(void *handle);
+
+EXTERN_C void register_host(void *handle);
+EXTERN_C void deregister_host(void *handle);
 
 #endif /* LIB_MQSIM_H_ */
