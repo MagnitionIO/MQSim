@@ -219,6 +219,11 @@ The output parameters in the SSDDevice category contain values for:
 3. Statistics for each queue in the SSD's internal flash Transaction Scheduling Unit (TSU): In the TSU exists a User_Read_TR_Queue, a User_Write_TR_Queue, a Mapping_Read_TR_Queue, a Mapping_Write_TR_Queue, a GC_Read_TR_Queue, a GC_Write_TR_queue, a GC_Erase_TR_Queue for each combination of channel and package.
 4. For each package: the fraction of time in the exclusive memory command execution, exclusive data transfer, overlapped memory command execution and data transfer, and idle mode.
 
+## Integration Mode
+MQSim now supports multi-instance Integration mode where this can be linked natively with any application to run N-number of parallel simulations on N-number of SSDs.
+This integration mode relies on the master logical clock of driving application
+Refer to the APIs available in `lib/libmqsim.h` for integration related feature
+Please refer to `test/TestLibMQSim.cpp` on how to integrate libMQSim.so with custom application
 
 ## References
 [1] A. Tavakkol et al., "MQSim: A Framework for Enabling Realistic Studies of Modern Multi-Queue SSD Devices," FAST, pp. 49 - 66, 2018.

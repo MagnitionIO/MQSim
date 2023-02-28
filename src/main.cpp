@@ -294,6 +294,8 @@ int main(int argc, char *argv[]) {
     }
 
     command_line_args(argv, ssd_config_file_path, workload_defs_file_path);
+    create_logger("MQSim", "/tmp");
+    set_max_file_size(-1);
 
     auto exec_params = new Execution_Parameter_Set;
     read_configuration_parameters(ssd_config_file_path, &exec_params);
