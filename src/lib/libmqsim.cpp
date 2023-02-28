@@ -87,6 +87,8 @@ EXTERN_C bool init_system(system_t **handle, const char *ssd_cfg) {
         log_warn ("%s", "MQSim instance is already initialized");
         return true;
     }
+    is_integration_enabled = true;
+
     *handle = _calloc(1, system_t);
     auto exec_params = new Execution_Parameter_Set; // throws std::bad_alloc
 
@@ -116,8 +118,6 @@ EXTERN_C bool init_system(system_t **handle, const char *ssd_cfg) {
     GET_ENGINE(*handle)->initialize();
     GET_DATASTORE(*handle) = new_data_store();
     *handle = GET_SYSTEM(*handle);
-
-    is_integration_enabled = true;
 
     log_debug ("%s", "System is initialized!!");
     return true;
