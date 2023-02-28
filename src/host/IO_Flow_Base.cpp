@@ -212,7 +212,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			}
 			STAT_transferred_bytes_write += request->LBA_count * SECTOR_SIZE_IN_BYTE;
 		}
-        
+
         auto info = _calloc(1, completion_info_t);
         info->arrival_time = request->Arrival_time;
         info->delay = request_delay;
