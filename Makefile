@@ -1,6 +1,6 @@
 CC        := g++
 LD        := g++
-CC_FLAGS := -std=c++17 -fPIC -g -Wno-gnu-array-member-paren-init -O0 -g3 -ggdb3 -DSINGLETON -O0
+CC_FLAGS := -std=c++17 -fPIC -g -O2 -Wno-gnu-array-member-paren-init
 
 MODULES   := exec host nvm_chip nvm_chip/flash_memory sim ssd utils lib
 SRC_DIR   := $(addprefix src/,$(MODULES)) src
