@@ -1,12 +1,22 @@
 #include "IO_Flow_Base.h"
 #include "../ssd/Host_Interface_Defs.h"
 #include "../sim/Engine.h"
+#include "lib/libmqsim.h"
+
+DEFINE_INTEGRATION_BIT;
 
 namespace Host_Components
 {
     Host_IO_Request::~Host_IO_Request()
     {
-        Simulator->report_request_complete(this->info);
+        if (TEST_INTEGRATION_BIT)
+        {
+            Simulator->report_request_complete(this->info);
+        }
+        else
+        {
+            free(this->info);
+        }
     }
 
     //unsigned int InputStreamBase::lastId = 0;
