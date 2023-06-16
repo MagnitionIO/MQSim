@@ -24,12 +24,12 @@ namespace SSD_Components
 		avg_flash_read_latency(avg_flash_read_latency), avg_flash_program_latency(avg_flash_program_latency),
 		over_provisioning_ratio(over_provisioning_ratio), max_allowed_block_erase_count(max_allowed_block_erase_count)
 	{
-		Stats::Init_stats(channel_no, chip_no_per_channel, die_no_per_chip, plane_no_per_die, block_no_per_plane, page_no_per_block, max_allowed_block_erase_count);
+		Simulator->stats = Stats::Init_stats(channel_no, chip_no_per_channel, die_no_per_chip, plane_no_per_die, block_no_per_plane, page_no_per_block, max_allowed_block_erase_count);
 	}
 
 	FTL::~FTL()
 	{
-		Stats::Clear_stats(channel_no, chip_no_per_channel, die_no_per_chip, plane_no_per_die, block_no_per_plane, page_no_per_block, max_allowed_block_erase_count);
+		Simulator->stats->Clear_stats(channel_no, chip_no_per_channel, die_no_per_chip, plane_no_per_die, block_no_per_plane, page_no_per_block, max_allowed_block_erase_count);
 	}
 
 	void FTL::Validate_simulation_config()
@@ -184,6 +184,8 @@ namespace SSD_Components
 					}
 					break;
 				}
+                default:
+                    break;
 				}
 
 				if (stat->Request_size_distribution_type == Utils::Request_Size_Distribution_Type::NORMAL)
@@ -276,6 +278,8 @@ namespace SSD_Components
 						if (start_LBA + size > max_lha)
 							start_LBA = min_lha;
 						break;
+                    default:
+                        break;
 					}
 
 					if (stat->generate_aligned_addresses)
@@ -747,6 +751,8 @@ namespace SSD_Components
 						}
 						break;
 					}
+                    default:
+                        break;
 				}
 			}
 		}
@@ -758,131 +764,131 @@ namespace SSD_Components
 		xmlwriter.Write_start_element_tag(tmp);
 
 		std::string attr = "Issued_Flash_Read_CMD";
-		std::string val = std::to_string(Stats::IssuedReadCMD);
+		std::string val = std::to_string(Simulator->stats->IssuedReadCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Interleaved_Read_CMD";
-		val = std::to_string(Stats::IssuedInterleaveReadCMD);
+		val = std::to_string(Simulator->stats->IssuedInterleaveReadCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Multiplane_Read_CMD";
-		val = std::to_string(Stats::IssuedMultiplaneReadCMD);
+		val = std::to_string(Simulator->stats->IssuedMultiplaneReadCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Copyback_Read_CMD";
-		val = std::to_string(Stats::IssuedCopybackReadCMD);
+		val = std::to_string(Simulator->stats->IssuedCopybackReadCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Multiplane_Copyback_Read_CMD";
-		val = std::to_string(Stats::IssuedMultiplaneCopybackReadCMD);
+		val = std::to_string(Simulator->stats->IssuedMultiplaneCopybackReadCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Program_CMD";
-		val = std::to_string(Stats::IssuedProgramCMD);
+		val = std::to_string(Simulator->stats->IssuedProgramCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Interleaved_Program_CMD";
-		val = std::to_string(Stats::IssuedInterleaveProgramCMD);
+		val = std::to_string(Simulator->stats->IssuedInterleaveProgramCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Multiplane_Program_CMD";
-		val = std::to_string(Stats::IssuedMultiplaneProgramCMD);
+		val = std::to_string(Simulator->stats->IssuedMultiplaneProgramCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Interleaved_Multiplane_Program_CMD";
-		val = std::to_string(Stats::IssuedInterleaveMultiplaneProgramCMD);
+		val = std::to_string(Simulator->stats->IssuedInterleaveMultiplaneProgramCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Copyback_Program_CMD";
-		val = std::to_string(Stats::IssuedCopybackProgramCMD);
+		val = std::to_string(Simulator->stats->IssuedCopybackProgramCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Multiplane_Copyback_Program_CMD";
-		val = std::to_string(Stats::IssuedMultiplaneCopybackProgramCMD);
+		val = std::to_string(Simulator->stats->IssuedMultiplaneCopybackProgramCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Erase_CMD";
-		val = std::to_string(Stats::IssuedEraseCMD);
+		val = std::to_string(Simulator->stats->IssuedEraseCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Interleaved_Erase_CMD";
-		val = std::to_string(Stats::IssuedInterleaveEraseCMD);
+		val = std::to_string(Simulator->stats->IssuedInterleaveEraseCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Multiplane_Erase_CMD";
-		val = std::to_string(Stats::IssuedMultiplaneEraseCMD);
+		val = std::to_string(Simulator->stats->IssuedMultiplaneEraseCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Interleaved_Multiplane_Erase_CMD";
-		val = std::to_string(Stats::IssuedInterleaveMultiplaneEraseCMD);
+		val = std::to_string(Simulator->stats->IssuedInterleaveMultiplaneEraseCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Suspend_Program_CMD";
-		val = std::to_string(Stats::IssuedSuspendProgramCMD);
+		val = std::to_string(Simulator->stats->IssuedSuspendProgramCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Suspend_Erase_CMD";
-		val = std::to_string(Stats::IssuedSuspendEraseCMD);
+		val = std::to_string(Simulator->stats->IssuedSuspendEraseCMD);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Read_CMD_For_Mapping";
-		val = std::to_string(Stats::Total_flash_reads_for_mapping);
+		val = std::to_string(Simulator->stats->Total_flash_reads_for_mapping);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Issued_Flash_Program_CMD_For_Mapping";
-		val = std::to_string(Stats::Total_flash_writes_for_mapping);
+		val = std::to_string(Simulator->stats->Total_flash_writes_for_mapping);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "CMT_Hits";
-		val = std::to_string(Stats::CMT_hits);
+		val = std::to_string(Simulator->stats->CMT_hits);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "CMT_Hits_For_Read";
-		val = std::to_string(Stats::readTR_CMT_hits);
+		val = std::to_string(Simulator->stats->readTR_CMT_hits);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "CMT_Hits_For_Write";
-		val = std::to_string(Stats::writeTR_CMT_hits);
+		val = std::to_string(Simulator->stats->writeTR_CMT_hits);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "CMT_Misses";
-		val = std::to_string(Stats::CMT_miss);
+		val = std::to_string(Simulator->stats->CMT_miss);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "CMT_Misses_For_Read";
-		val = std::to_string(Stats::readTR_CMT_miss);
+		val = std::to_string(Simulator->stats->readTR_CMT_miss);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "CMT_Misses_For_Write";
-		val = std::to_string(Stats::writeTR_CMT_miss);
+		val = std::to_string(Simulator->stats->writeTR_CMT_miss);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Total_CMT_Queries";
-		val = std::to_string(Stats::total_CMT_queries);
+		val = std::to_string(Simulator->stats->total_CMT_queries);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Total_CMT_Queries_For_Reads";
-		val = std::to_string(Stats::total_readTR_CMT_queries);
+		val = std::to_string(Simulator->stats->total_readTR_CMT_queries);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Total_CMT_Queries_For_Writes";
-		val = std::to_string(Stats::total_writeTR_CMT_queries);
+		val = std::to_string(Simulator->stats->total_writeTR_CMT_queries);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Total_GC_Executions";
-		val = std::to_string(Stats::Total_gc_executions);
+		val = std::to_string(Simulator->stats->Total_gc_executions);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Average_Page_Movement_For_GC";
-		val = std::to_string(double(Stats::Total_page_movements_for_gc) / double(Stats::Total_gc_executions));
+		val = std::to_string(double(Simulator->stats->Total_page_movements_for_gc) / double(Simulator->stats->Total_gc_executions));
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Total_WL_Executions";
-		val = std::to_string(Stats::Total_wl_executions);
+		val = std::to_string(Simulator->stats->Total_wl_executions);
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		attr = "Average_Page_Movement_For_WL";
-		val = std::to_string(double(Stats::Total_page_movements_for_wl) / double(Stats::Total_wl_executions));
+		val = std::to_string(double(Simulator->stats->Total_page_movements_for_wl) / double(Simulator->stats->Total_wl_executions));
 		xmlwriter.Write_attribute_string_inline(attr, val);
 
 		xmlwriter.Write_end_element_tag();

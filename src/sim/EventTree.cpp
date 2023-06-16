@@ -6,8 +6,6 @@ namespace MQSimEngine
 {
 	class Engine;
 
-	EventTreeNode* EventTree::SentinelNode = NULL;
-
 	EventTree::EventTree()
 	{
 		// set up the sentinel node. the sentinel node is the key to a successfull
@@ -19,6 +17,7 @@ namespace MQSimEngine
 		SentinelNode->Color = 1;
 		rbTree = SentinelNode;
 		lastNodeFound = SentinelNode;
+        Count = 0;
 	}
 
 	EventTree::~EventTree()
@@ -242,7 +241,7 @@ namespace MQSimEngine
 
 	void EventTree::Insert_sim_event(Sim_Event* event)
 	{
-		if (event->Fire_time < Engine::Instance()->Time()) {
+		if (event->Fire_time < Simulator->Time()) {
 			PRINT_ERROR("Illegal request to register a simulation event before Now!")
 		}
 

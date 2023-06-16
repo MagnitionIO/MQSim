@@ -38,22 +38,19 @@ public:
 	SSD_Components::NVM_Firmware* Firmware;
 	SSD_Components::NVM_PHY_Base* PHY;
 	std::vector<SSD_Components::NVM_Channel_Base*> Channels;
-	void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter& xmlwriter);
+	void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter& xmlwriter) override;
 	unsigned int Get_no_of_LHAs_in_an_NVM_write_unit();
 
-	void Attach_to_host(Host_Components::PCIe_Switch* pcie_switch);
-	void Perform_preconditioning(std::vector<Utils::Workload_Statistics*> workload_stats);
-	void Start_simulation();
-	void Validate_simulation_config();
-	void Execute_simulator_event(MQSimEngine::Sim_Event* event);
-	static LPA_type Convert_host_logical_address_to_device_address(LHA_type lha);
-	static page_status_type Find_NVM_subunit_access_bitmap(LHA_type lha);
+	void Attach_to_host(Host_Components::PCIe_Switch* pcie_switch) const;
+	void Perform_preconditioning(std::vector<Utils::Workload_Statistics*> workload_stats) const;
+	void Start_simulation() override;
+	void Validate_simulation_config() override;
+	void Execute_simulator_event(MQSimEngine::Sim_Event* event) override;
+	static LPA_type Convert_host_logical_address_to_device_address(MQSimEngine::Sim_Object *self, LHA_type lha);
+	static page_status_type Find_NVM_subunit_access_bitmap(MQSimEngine::Sim_Object *self, LHA_type lha);
 
 	unsigned int Channel_count;
 	unsigned int Chip_no_per_channel;
-
-private:
-	static SSD_Device * my_instance;//Used in static functions
 };
 
 #endif //!SSD_DEVICE_H

@@ -27,18 +27,17 @@ namespace SSD_Components
 			unsigned int dram_row_size, unsigned int dram_data_rate, unsigned int dram_busrt_size, sim_time_type dram_tRCD, sim_time_type dram_tCL, sim_time_type dram_tRP,
 			Caching_Mode* caching_mode_per_input_stream, Cache_Sharing_Mode sharing_mode, unsigned int stream_count);
 		virtual ~Data_Cache_Manager_Base();
-		void Setup_triggers();
-		void Start_simulation();
-		void Validate_simulation_config();
+		void Setup_triggers() override;
+		void Start_simulation() override;
+		void Validate_simulation_config() override;
 
-		typedef void(*UserRequestServicedSignalHanderType) (User_Request*);
-		void Connect_to_user_request_serviced_signal(UserRequestServicedSignalHanderType);
-		typedef void(*MemoryTransactionServicedSignalHanderType) (NVM_Transaction*);
-		void Connect_to_user_memory_transaction_serviced_signal(MemoryTransactionServicedSignalHanderType);
+		typedef void(*UserRequestServicedSignalHanderType) (MQSimEngine::Sim_Object*, User_Request*);
+		void Connect_to_user_request_serviced_signal(MQSimEngine::Sim_Object *instance, UserRequestServicedSignalHanderType);
+		typedef void(*MemoryTransactionServicedSignalHanderType) (MQSimEngine::Sim_Object*, NVM_Transaction*);
+		void Connect_to_user_memory_transaction_serviced_signal(MQSimEngine::Sim_Object*, MemoryTransactionServicedSignalHanderType);
 		void Set_host_interface(Host_Interface_Base* host_interface);
 		virtual void Do_warmup(std::vector<Utils::Workload_Statistics*> workload_stats) = 0;
 	protected:
-		static Data_Cache_Manager_Base* _my_instance;
 		Host_Interface_Base* host_interface;
 		NVM_Firmware* nvm_firmware;
 		unsigned int dram_row_size;//The size of the DRAM rows in bytes
@@ -47,19 +46,19 @@ namespace SSD_Components
 		double dram_burst_transfer_time_ddr;//The transfer time of two bursts, changed from sim_time_type to double to increase precision
 		sim_time_type dram_tRCD, dram_tCL, dram_tRP;//DRAM access parameters in nano-seconds
 		Cache_Sharing_Mode sharing_mode;
-		static Caching_Mode* caching_mode_per_input_stream;
+		Caching_Mode* caching_mode_per_input_stream;
 		unsigned int stream_count;
 
-		std::vector<UserRequestServicedSignalHanderType> connected_user_request_serviced_signal_handlers;
+		std::vector<std::pair<MQSimEngine::Sim_Object*, UserRequestServicedSignalHanderType> > connected_user_request_serviced_signal_handlers;
 		void broadcast_user_request_serviced_signal(User_Request* user_request);
 
-		std::vector<MemoryTransactionServicedSignalHanderType> connected_user_memory_transaction_serviced_signal_handlers;
+		std::vector<std::pair<MQSimEngine::Sim_Object*, MemoryTransactionServicedSignalHanderType>> connected_user_memory_transaction_serviced_signal_handlers;
 		void broadcast_user_memory_transaction_serviced_signal(NVM_Transaction* transaction);
 
-		static void handle_user_request_arrived_signal(User_Request* user_request);
+		static void handle_user_request_arrived_signal(Sim_Object *instance, User_Request *user_request);
 		virtual void process_new_user_request(User_Request* user_request) = 0;
 
-		bool is_user_request_finished(const User_Request* user_request) { return (user_request->Transaction_list.size() == 0 && user_request->Sectors_serviced_from_cache == 0); }
+		bool is_user_request_finished(const User_Request* user_request) { return (user_request->Transaction_list.empty() && user_request->Sectors_serviced_from_cache == 0); }
 	};
 
 

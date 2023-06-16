@@ -5,6 +5,7 @@
 #include "../host/PCIe_Root_Complex.h"
 #include "../host/IO_Flow_Synthetic.h"
 #include "../host/IO_Flow_Trace_Based.h"
+#include "../host/IO_Flow_Integration_Based.h"
 #include "../utils/StringTools.h"
 #include "../utils/Logical_Address_Partitioning_Unit.h"
 
@@ -48,28 +49,68 @@ Host_System::Host_System(Host_Parameter_Set* parameters, bool preconditioning_re
 				if (flow_param->Working_Set_Percentage > 100 || flow_param->Working_Set_Percentage < 1) {
 					flow_param->Working_Set_Percentage = 100;
 				}
-				io_flow = new Host_Components::IO_Flow_Synthetic(this->ID() + ".IO_Flow.Synth.No_" + std::to_string(flow_id), flow_id,
-					Utils::Logical_Address_Partitioning_Unit::Start_lha_available_to_flow(flow_id),
-					Utils::Logical_Address_Partitioning_Unit::End_lha_available_to_flow(flow_id),
-					((double)flow_param->Working_Set_Percentage / 100.0), FLOW_ID_TO_Q_ID(flow_id), nvme_sq_size, nvme_cq_size,
-					flow_param->Priority_Class, flow_param->Read_Percentage / double(100.0), flow_param->Address_Distribution, flow_param->Percentage_of_Hot_Region / double(100.0),
-					flow_param->Request_Size_Distribution, flow_param->Average_Request_Size, flow_param->Variance_Request_Size,
-					flow_param->Synthetic_Generator_Type, (flow_param->Bandwidth == 0? 0 :NanoSecondCoeff / ((flow_param->Bandwidth / SECTOR_SIZE_IN_BYTE) / flow_param->Average_Request_Size)),
-					flow_param->Average_No_of_Reqs_in_Queue, flow_param->Generated_Aligned_Addresses, flow_param->Address_Alignment_Unit,
-					flow_param->Seed, flow_param->Stop_Time, flow_param->Initial_Occupancy_Percentage / double(100.0), flow_param->Total_Requests_To_Generate, ssd_host_interface->GetType(), this->PCIe_root_complex, this->SATA_hba,
-					parameters->Enable_ResponseTime_Logging, parameters->ResponseTime_Logging_Period_Length, parameters->Input_file_path + ".IO_Flow.No_" + std::to_string(flow_id) + ".log");
+                io_flow = new Host_Components::IO_Flow_Synthetic(
+                        this->ID() + ".IO_Flow.Synth.No_" + std::to_string(flow_id), flow_id,
+                        Simulator->lapu->Start_lha_available_to_flow(flow_id),
+                        Simulator->lapu->End_lha_available_to_flow(flow_id),
+                        ((double) flow_param->Working_Set_Percentage / 100.0), FLOW_ID_TO_Q_ID(flow_id), nvme_sq_size,
+                        nvme_cq_size,
+                        flow_param->Priority_Class, flow_param->Read_Percentage / double(100.0),
+                        flow_param->Address_Distribution, flow_param->Percentage_of_Hot_Region / double(100.0),
+                        flow_param->Request_Size_Distribution, flow_param->Average_Request_Size,
+                        flow_param->Variance_Request_Size,
+                        flow_param->Synthetic_Generator_Type, (flow_param->Bandwidth == 0 ? 0 : NanoSecondCoeff /
+                                                                                                ((flow_param->Bandwidth /
+                                                                                                  SECTOR_SIZE_IN_BYTE) /
+                                                                                                 flow_param->Average_Request_Size)),
+                        flow_param->Average_No_of_Reqs_in_Queue, flow_param->Generated_Aligned_Addresses,
+                        flow_param->Address_Alignment_Unit,
+                        flow_param->Seed, flow_param->Stop_Time,
+                        flow_param->Initial_Occupancy_Percentage / double(100.0),
+                        flow_param->Total_Requests_To_Generate, ssd_host_interface->GetType(), this->PCIe_root_complex,
+                        this->SATA_hba,
+                        parameters->Enable_ResponseTime_Logging, parameters->ResponseTime_Logging_Period_Length,
+                        parameters->Input_file_path + ".IO_Flow.No_" + std::to_string(flow_id) + ".log");
 				this->IO_flows.push_back(io_flow);
 				break;
 			}
 			case Flow_Type::TRACE: {
-				IO_Flow_Parameter_Set_Trace_Based * flow_param = (IO_Flow_Parameter_Set_Trace_Based*)parameters->IO_Flow_Definitions[flow_id];
-				io_flow = new Host_Components::IO_Flow_Trace_Based(this->ID() + ".IO_Flow.Trace." + flow_param->File_Path, flow_id,
-					Utils::Logical_Address_Partitioning_Unit::Start_lha_available_to_flow(flow_id), Utils::Logical_Address_Partitioning_Unit::End_lha_available_to_flow(flow_id),
-					FLOW_ID_TO_Q_ID(flow_id), nvme_sq_size, nvme_cq_size,
-					flow_param->Priority_Class, flow_param->Initial_Occupancy_Percentage / double(100.0),
-					flow_param->File_Path, flow_param->Time_Unit, flow_param->Relay_Count, flow_param->Percentage_To_Be_Executed,
-					ssd_host_interface->GetType(), this->PCIe_root_complex, this->SATA_hba,
-					parameters->Enable_ResponseTime_Logging, parameters->ResponseTime_Logging_Period_Length, parameters->Input_file_path + ".IO_Flow.No_" + std::to_string(flow_id) + ".log");
+                IO_Flow_Parameter_Set_Trace_Based *flow_param = (IO_Flow_Parameter_Set_Trace_Based *) parameters->IO_Flow_Definitions[flow_id];
+                io_flow = new Host_Components::IO_Flow_Trace_Based(
+                        this->ID() + ".IO_Flow.Trace." + flow_param->File_Path, flow_id,
+                        Simulator->lapu->Start_lha_available_to_flow(flow_id),
+                        Simulator->lapu->End_lha_available_to_flow(flow_id),
+                        FLOW_ID_TO_Q_ID(flow_id), nvme_sq_size, nvme_cq_size,
+                        flow_param->Priority_Class, flow_param->Initial_Occupancy_Percentage / double(100.0),
+                        flow_param->File_Path, flow_param->Time_Unit, flow_param->Relay_Count,
+                        flow_param->Percentage_To_Be_Executed,
+                        ssd_host_interface->GetType(), this->PCIe_root_complex, this->SATA_hba,
+                        parameters->Enable_ResponseTime_Logging, parameters->ResponseTime_Logging_Period_Length,
+                        parameters->Input_file_path + ".IO_Flow.No_" + std::to_string(flow_id) + ".log");
+
+				this->IO_flows.push_back(io_flow);
+				break;
+			}
+			case Flow_Type::INTEGRATION: {
+                auto flow_param = (IO_Flow_Parameter_Set_Integration_Based *) parameters->IO_Flow_Definitions[flow_id];
+                io_flow = new Host_Components::IO_Flow_Integration_Based(this->ID() + ".IO_Flow.IntegrationBased",
+                                                                         flow_id,
+                                                                         Simulator->lapu->Start_lha_available_to_flow(
+                                                                                 flow_id),
+                                                                         Simulator->lapu->End_lha_available_to_flow(
+                                                                                 flow_id),
+                                                                         FLOW_ID_TO_Q_ID(flow_id), nvme_sq_size,
+                                                                         nvme_cq_size,
+                                                                         flow_param->Priority_Class,
+                                                                         flow_param->Initial_Occupancy_Percentage /
+                                                                         double(100.0),
+                                                                         flow_param->Time_Unit,
+                                                                         ssd_host_interface->GetType(),
+                                                                         this->PCIe_root_complex, this->SATA_hba,
+                                                                         parameters->Enable_ResponseTime_Logging,
+                                                                         parameters->ResponseTime_Logging_Period_Length,
+                                                                         parameters->Input_file_path + ".IO_Flow.No_" +
+                                                                         std::to_string(flow_id) + ".log");
 
 				this->IO_flows.push_back(io_flow);
 				break;
@@ -86,7 +127,7 @@ Host_System::Host_System(Host_Parameter_Set* parameters, bool preconditioning_re
 	}
 }
 
-Host_System::~Host_System() 
+Host_System::~Host_System()
 {
 	delete this->Link;
 	delete this->PCIe_root_complex;
@@ -94,9 +135,7 @@ Host_System::~Host_System()
 	if (ssd_device->Host_interface->GetType() == HostInterface_Types::SATA) {
 		delete this->SATA_hba;
 	}
-	for (uint16_t flow_id = 0; flow_id < this->IO_flows.size(); flow_id++) {
-		delete this->IO_flows[flow_id];
-	}
+    this->IO_flows.clear();
 }
 
 void Host_System::Attach_ssd_device(SSD_Device* ssd_device)
@@ -138,7 +177,7 @@ void Host_System::Start_simulation()
 	}
 }
 
-void Host_System::Validate_simulation_config() 
+void Host_System::Validate_simulation_config()
 {
 	if (this->IO_flows.size() == 0) {
 		PRINT_ERROR("No IO flow is set for host system")
@@ -180,10 +219,19 @@ std::vector<Utils::Workload_Statistics*> Host_System::get_workloads_statistics()
 
 	for (auto &workload : IO_flows) {
 		Utils::Workload_Statistics* s = new Utils::Workload_Statistics;
-		workload->Get_statistics(*s, ssd_device->Convert_host_logical_address_to_device_address, ssd_device->Find_NVM_subunit_access_bitmap);
+        workload->Get_statistics(*s, ssd_device, ssd_device->Convert_host_logical_address_to_device_address, ssd_device->Find_NVM_subunit_access_bitmap);
 		stats.push_back(s);
 	}
 
 	return stats;
+}
+
+Host_Components::IO_Flow_Base *Host_System::Get_Integration_IO_Flow() {
+    for (const auto &it : IO_flows)
+    {
+        if (it->ID() =="Host.IO_Flow.IntegrationBased")
+            return it;
+    }
+    return nullptr;
 }
 

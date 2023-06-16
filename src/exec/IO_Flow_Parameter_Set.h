@@ -10,7 +10,7 @@
 #include "../utils/DistributionTypes.h"
 #include "Parameter_Set_Base.h"
 
-enum class Flow_Type { SYNTHETIC, TRACE };
+enum class Flow_Type { SYNTHETIC, TRACE, INTEGRATION };
 class IO_Flow_Parameter_Set : public Parameter_Set_Base
 {
 public:
@@ -26,6 +26,7 @@ public:
 	void XML_serialize(Utils::XmlWriter& xmlwrite);
 	void XML_deserialize(rapidxml::xml_node<> *node);
 private:
+    void XML_deserializer(rapidxml::xml_node<> *param);
 };
 
 class IO_Flow_Parameter_Set_Synthetic : public IO_Flow_Parameter_Set
@@ -64,6 +65,16 @@ public:
 	Trace_Time_Unit Time_Unit;
 	
 	void XML_serialize(Utils::XmlWriter& xmlwriter);
+	void XML_deserialize(rapidxml::xml_node<> *node);
+};
+
+class IO_Flow_Parameter_Set_Integration_Based : public IO_Flow_Parameter_Set
+{
+public:
+    IO_Flow_Parameter_Set_Integration_Based() { this->Type = Flow_Type::INTEGRATION; }
+	Trace_Time_Unit Time_Unit;
+
+	void XML_serialize(Utils::XmlWriter& xmlwriter){}
 	void XML_deserialize(rapidxml::xml_node<> *node);
 };
 

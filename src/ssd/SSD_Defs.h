@@ -36,7 +36,6 @@ inline unsigned int count_sector_no_from_status_bitmap(const page_status_type pa
 			size++;
 		}
 	}
-
 	return size;
 }
 

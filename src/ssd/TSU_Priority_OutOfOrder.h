@@ -36,12 +36,12 @@ public:
                             bool ProgramSuspensionEnabled);
     ~TSU_Priority_OutOfOrder();
     
-    void Schedule();
+    void Schedule() override;
 
-    void Start_simulation();
-    void Validate_simulation_config();
-    void Execute_simulator_event(MQSimEngine::Sim_Event *);
-    void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter &xmlwriter);
+    void Start_simulation() override;
+    void Validate_simulation_config() override;
+    void Execute_simulator_event(MQSimEngine::Sim_Event *) override;
+    void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter &xmlwriter) override;
 
 private:
     Flash_Transaction_Queue ***UserReadTRQueue;
@@ -56,9 +56,9 @@ private:
     int **currentWeightRead;
     int **currentWeightWrite;
 
-    bool service_read_transaction(NVM::FlashMemory::Flash_Chip *chip);
-    bool service_write_transaction(NVM::FlashMemory::Flash_Chip *chip);
-    bool service_erase_transaction(NVM::FlashMemory::Flash_Chip *chip);
+    bool service_read_transaction(NVM::FlashMemory::Flash_Chip *chip) override;
+    bool service_write_transaction(NVM::FlashMemory::Flash_Chip *chip) override;
+    bool service_erase_transaction(NVM::FlashMemory::Flash_Chip *chip) override;
     Flash_Transaction_Queue *get_next_read_service_queue(NVM::FlashMemory::Flash_Chip *chip);
     Flash_Transaction_Queue *get_next_write_service_queue(NVM::FlashMemory::Flash_Chip *chip);
 };

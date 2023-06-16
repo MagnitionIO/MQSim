@@ -3,6 +3,10 @@
 #include "ASCII_Trace_Definition.h"
 #include "../utils/DistributionTypes.h"
 
+#ifndef BUILD_LIB
+#include "lib/libmqsim.h"
+#endif /* BUILD_LIB */
+
 namespace Host_Components
 {
 IO_Flow_Trace_Based::IO_Flow_Trace_Based(const sim_object_id_type &name, uint16_t flow_id, LHA_type start_lsa_on_device, LHA_type end_lsa_on_device, uint16_t io_queue_id,
@@ -61,6 +65,55 @@ Host_IO_Request *IO_Flow_Trace_Based::Generate_next_request()
 
 	return request;
 }
+#ifdef BUILD_LIB
+Host_IO_Request *IO_Flow_Trace_Based::Generate_Sim_Request(request_type_t *req)
+{
+	Host_IO_Request *request = new Host_IO_Request;
+	if (req->type == kREQUEST_TYPE::WRITE)
+	{
+		request->Type = Host_IO_Request_Type::WRITE;
+		STAT_generated_write_request_count++;
+	}
+	else
+	{
+		request->Type = Host_IO_Request_Type::READ;
+		STAT_generated_read_request_count++;
+	}
+
+	char *pEnd;
+	request->LBA_count = req->size_in_sectors;
+
+	request->Start_LBA = req->start_sector_addr;
+	if (request->Start_LBA <= (end_lsa_on_device - start_lsa_on_device))
+	{
+		request->Start_LBA += start_lsa_on_device;
+	}
+	else
+	{
+		request->Start_LBA = start_lsa_on_device + request->Start_LBA % (end_lsa_on_device - start_lsa_on_device);
+	}
+
+	request->Arrival_time = time_offset + Simulator->Time();
+	STAT_generated_request_count++;
+
+	return request;
+}
+
+void IO_Flow_Trace_Based::Execute_simulator_event(bool dummy, request_type_t *req)
+{
+    Host_IO_Request *request = Generate_Sim_Request(req);
+    if (request != NULL)
+    {
+        Submit_io_request(request);
+    }
+
+    if (STAT_generated_request_count < total_requests_to_be_generated)
+    {
+        char *pEnd;
+        Simulator->Register_sim_event(time_offset + req->arrival_time, this);
+    }
+}
+#endif
 
 void IO_Flow_Trace_Based::NVMe_consume_io_request(Completion_Queue_Entry *io_request)
 {
@@ -163,8 +216,8 @@ void IO_Flow_Trace_Based::Execute_simulator_event(MQSimEngine::Sim_Event *)
 	}
 }
 
-void IO_Flow_Trace_Based::Get_statistics(Utils::Workload_Statistics &stats, LPA_type (*Convert_host_logical_address_to_device_address)(LHA_type lha),
-										 page_status_type (*Find_NVM_subunit_access_bitmap)(LHA_type lha))
+void IO_Flow_Trace_Based::Get_statistics(Utils::Workload_Statistics& stats, MQSimEngine::Sim_Object *dev, LPA_type(*Convert_host_logical_address_to_device_address)(MQSimEngine::Sim_Object *ins, LHA_type lha),
+                                         page_status_type(*Find_NVM_subunit_access_bitmap)(MQSimEngine::Sim_Object *ins, LHA_type lha))
 {
 	stats.Type = Utils::Workload_Type::TRACE_BASED;
 	stats.Stream_id = io_queue_id - 1; //In MQSim, there is a simple relation between stream id and the io_queue_id of NVMe
@@ -234,8 +287,8 @@ void IO_Flow_Trace_Based::Get_statistics(Utils::Workload_Statistics &stats, LPA_
 		//Address access pattern statistics
 		while (start_LBA <= end_LBA)
 		{
-			LPA_type device_address = Convert_host_logical_address_to_device_address(start_LBA);
-			page_status_type access_status_bitmap = Find_NVM_subunit_access_bitmap(start_LBA);
+			LPA_type device_address = Convert_host_logical_address_to_device_address(dev, start_LBA);
+			page_status_type access_status_bitmap = Find_NVM_subunit_access_bitmap(dev, start_LBA);
 			if (line_splitted[ASCIITraceTypeColumn].compare(ASCIITraceWriteCode) == 0)
 			{
 				if (stats.Write_address_access_pattern.find(device_address) == stats.Write_address_access_pattern.end())

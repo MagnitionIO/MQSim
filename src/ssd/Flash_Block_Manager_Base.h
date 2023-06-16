@@ -34,7 +34,7 @@ namespace SSD_Components
 		Block_Service_Status Current_status;
 		unsigned int Invalid_page_count;
 		unsigned int Erase_count;
-		static unsigned int Page_vector_size;
+		unsigned int Page_vector_size;
 		uint64_t* Invalid_page_bitmap;//A bit sequence that keeps track of valid/invalid status of pages in the block. A "0" means valid, and a "1" means invalid.
 		stream_id_type Stream_id = NO_STREAM;
 		bool Holds_mapping_data = false;

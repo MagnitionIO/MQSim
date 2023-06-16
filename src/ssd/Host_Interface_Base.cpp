@@ -28,14 +28,11 @@ namespace SSD_Components
 		}
 	}
 
-	Host_Interface_Base* Host_Interface_Base::_my_instance = NULL;
-
-	Host_Interface_Base::Host_Interface_Base(const sim_object_id_type& id, HostInterface_Types type, LHA_type max_logical_sector_address, unsigned int sectors_per_page, 
+	Host_Interface_Base::Host_Interface_Base(const sim_object_id_type& id, HostInterface_Types type, LHA_type max_logical_sector_address, unsigned int sectors_per_page,
 		Data_Cache_Manager_Base* cache)
 		: MQSimEngine::Sim_Object(id), type(type), max_logical_sector_address(max_logical_sector_address), 
 		sectors_per_page(sectors_per_page), cache(cache)
 	{
-		_my_instance = this;
 	}
 	
 	Host_Interface_Base::~Host_Interface_Base()
@@ -47,11 +44,22 @@ namespace SSD_Components
 	void Host_Interface_Base::Setup_triggers()
 	{
 		Sim_Object::Setup_triggers();
-		cache->Connect_to_user_request_serviced_signal(handle_user_request_serviced_signal_from_cache);
-		cache->Connect_to_user_memory_transaction_serviced_signal(handle_user_memory_transaction_serviced_signal_from_cache);
+		cache->Connect_to_user_request_serviced_signal(this, handle_user_request_serviced_signal_from_cache);
+		cache->Connect_to_user_memory_transaction_serviced_signal(this, handle_user_memory_transaction_serviced_signal_from_cache);
 	}
 
-	void Host_Interface_Base::Validate_simulation_config()
+    void Host_Interface_Base::handle_user_request_serviced_signal_from_cache(MQSimEngine::Sim_Object *instance, User_Request* user_request)
+    {
+        dynamic_cast<Host_Interface_Base*>(instance)->input_stream_manager->Handle_serviced_request(user_request);
+    }
+
+    void Host_Interface_Base::handle_user_memory_transaction_serviced_signal_from_cache(MQSimEngine::Sim_Object *instance, NVM_Transaction* transaction)
+    {
+        dynamic_cast<Host_Interface_Base*>(instance)->input_stream_manager->Update_transaction_statistics(transaction);
+    }
+
+
+    void Host_Interface_Base::Validate_simulation_config()
 	{
 	}
 

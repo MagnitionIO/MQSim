@@ -90,16 +90,24 @@ public:
 						unsigned int no_of_input_streams, uint16_t queue_fetch_size, unsigned int sectors_per_page, Data_Cache_Manager_Base *cache);
 	stream_id_type Create_new_stream(IO_Flow_Priority_Class::Priority priority_class, LHA_type start_logical_sector_address, LHA_type end_logical_sector_address,
 									 uint64_t submission_queue_base_address, uint64_t completion_queue_base_address);
-	void Start_simulation();
-	void Validate_simulation_config();
-	void Execute_simulator_event(MQSimEngine::Sim_Event *);
+	void Start_simulation() override;
+	void Validate_simulation_config() override;
+	void Execute_simulator_event(MQSimEngine::Sim_Event *) override;
 	uint16_t Get_submission_queue_depth();
 	uint16_t Get_completion_queue_depth();
-	void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter &xmlwriter);
+	void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter &xmlwriter) override;
 
 private:
 	uint16_t submission_queue_depth, completion_queue_depth;
 	unsigned int no_of_input_streams;
+
+    [[nodiscard]] std::string str() const {
+        std::ostringstream st;
+        st << "**Host_Interface_NVMe** Submission Q Depth: " << submission_queue_depth
+        << " Completion Q Depth: " << completion_queue_depth
+        << " # input streams: " << no_of_input_streams << "\n";
+        return st.str();
+    }
 };
 } // namespace SSD_Components
 

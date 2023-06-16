@@ -48,7 +48,7 @@ namespace SSD_Components
 		friend class Request_Fetch_Unit_NVMe;
 		friend class Request_Fetch_Unit_SATA;
 	public:
-		Input_Stream_Manager_Base(Host_Interface_Base* host_interface);
+		explicit Input_Stream_Manager_Base(Host_Interface_Base* host_interface);
 		virtual ~Input_Stream_Manager_Base();
 		virtual void Handle_new_arrived_request(User_Request* request) = 0;
 		virtual void Handle_arrived_write_data(User_Request* request) = 0;
@@ -71,7 +71,7 @@ namespace SSD_Components
 	class Request_Fetch_Unit_Base
 	{
 	public:
-		Request_Fetch_Unit_Base(Host_Interface_Base* host_interface);
+		explicit Request_Fetch_Unit_Base(Host_Interface_Base* host_interface);
 		virtual ~Request_Fetch_Unit_Base();
 		virtual void Fetch_next_request(stream_id_type stream_id) = 0;
 		virtual void Fetch_write_data(User_Request* request) = 0;
@@ -101,13 +101,14 @@ namespace SSD_Components
 		Host_Interface_Base(const sim_object_id_type& id, HostInterface_Types type, LHA_type max_logical_sector_address, 
 			unsigned int sectors_per_page, Data_Cache_Manager_Base* cache);
 		virtual ~Host_Interface_Base();
-		void Setup_triggers();
-		void Validate_simulation_config();
+		void Setup_triggers() override;
+		void Validate_simulation_config() override;
 
-		typedef void(*UserRequestArrivedSignalHandlerType) (User_Request*);
-		void Connect_to_user_request_arrived_signal(UserRequestArrivedSignalHandlerType function)
+		typedef void(*UserRequestArrivedSignalHandlerType) (MQSimEngine::Sim_Object*, User_Request*);
+		void Connect_to_user_request_arrived_signal(MQSimEngine::Sim_Object *instance,
+                                                    UserRequestArrivedSignalHandlerType function)
 		{
-			connected_user_request_arrived_signal_handlers.push_back(function);
+			connected_user_request_arrived_signal_handlers.emplace_back(instance, function);
 		}
 
 		void Consume_pcie_message(Host_Components::PCIe_Message* message)
@@ -131,29 +132,21 @@ namespace SSD_Components
 		HostInterface_Types type;
 		LHA_type max_logical_sector_address;
 		unsigned int sectors_per_page;
-		static Host_Interface_Base* _my_instance;
 		Input_Stream_Manager_Base* input_stream_manager;
 		Request_Fetch_Unit_Base* request_fetch_unit;
 		Data_Cache_Manager_Base* cache;
-		std::vector<UserRequestArrivedSignalHandlerType> connected_user_request_arrived_signal_handlers;
+		std::vector<std::pair<MQSimEngine::Sim_Object *, UserRequestArrivedSignalHandlerType> > connected_user_request_arrived_signal_handlers;
 
 		void broadcast_user_request_arrival_signal(User_Request* user_request)
 		{
-			for (std::vector<UserRequestArrivedSignalHandlerType>::iterator it = connected_user_request_arrived_signal_handlers.begin();
-				it != connected_user_request_arrived_signal_handlers.end(); it++) {
-				(*it)(user_request);
+			for (const auto& it : connected_user_request_arrived_signal_handlers) {
+				(it.second)(it.first, user_request);
 			}
 		}
 
-		static void handle_user_request_serviced_signal_from_cache(User_Request* user_request)
-		{
-			_my_instance->input_stream_manager->Handle_serviced_request(user_request);
-		}
+		static void handle_user_request_serviced_signal_from_cache(MQSimEngine::Sim_Object *instance, User_Request* user_request);
 
-		static void handle_user_memory_transaction_serviced_signal_from_cache(NVM_Transaction* transaction)
-		{
-			_my_instance->input_stream_manager->Update_transaction_statistics(transaction);
-		}
+		static void handle_user_memory_transaction_serviced_signal_from_cache(MQSimEngine::Sim_Object *instance, NVM_Transaction* transaction);
 	private:
 		Host_Components::PCIe_Switch* pcie_switch;
 	};

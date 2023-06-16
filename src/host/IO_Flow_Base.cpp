@@ -1,10 +1,25 @@
 #include "IO_Flow_Base.h"
 #include "../ssd/Host_Interface_Defs.h"
 #include "../sim/Engine.h"
+#include "lib/libmqsim.h"
+
+DEFINE_INTEGRATION_BIT;
 
 namespace Host_Components
 {
-	//unsigned int InputStreamBase::lastId = 0;
+    Host_IO_Request::~Host_IO_Request()
+    {
+        if (TEST_INTEGRATION_BIT)
+        {
+            Simulator->report_request_complete(this->info);
+        }
+        else
+        {
+            free(this->info);
+        }
+    }
+
+    //unsigned int InputStreamBase::lastId = 0;
 IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA_type start_lsa_on_device, LHA_type end_lsa_on_device, uint16_t io_queue_id,
 						   uint16_t nvme_submission_queue_size, uint16_t nvme_completion_queue_size,
 						   IO_Flow_Priority_Class::Priority priority_class, sim_time_type stop_time, double initial_occupancy_ratio, unsigned int total_requets_to_be_generated,
@@ -208,6 +223,15 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			STAT_transferred_bytes_write += request->LBA_count * SECTOR_SIZE_IN_BYTE;
 		}
 
+        auto info = _calloc(1, completion_info_t);
+        info->arrival_time = request->Arrival_time;
+        info->delay = request_delay;
+        info->response_time = device_response_time;
+        info->completion_time = Simulator->Time();
+        info->id = request->req_id;
+
+        request->info = info;
+
 		delete request;
 
 		//Announce simulation progress
@@ -231,7 +255,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 				}
 			}
 			progress_bar += "] ";
-			PRINT_MESSAGE(progress_bar << " " << progress << "% progress in " << ID() << std::endl)
+//			PRINT_MESSAGE(progress_bar << " " << progress << "% progress in " << ID() << std::endl)
 				next_progress_step += 5;
 		}
 
@@ -309,6 +333,15 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			STAT_transferred_bytes_write += request->LBA_count * SECTOR_SIZE_IN_BYTE;
 		}
 
+        auto info = _calloc(1, completion_info_t);
+        info->arrival_time = request->Arrival_time;
+        info->delay = request_delay;
+        info->response_time = device_response_time;
+        info->completion_time = Simulator->Time();
+        info->id = request->req_id;
+
+        request->info = info;
+
 		delete request;
 
 		nvme_queue_pair.Submission_queue_head = cqe->SQ_Head;
@@ -338,6 +371,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 
 		delete cqe;
 
+#if 0
 		//Announce simulation progress
 		if (stop_time > 0) {
 			progress = int(Simulator->Time() / (double)stop_time * 100);
@@ -360,10 +394,10 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 				}
 			}
 			progress_bar += "] ";
-			PRINT_MESSAGE(progress_bar << " " << progress << "% progress in " << ID() << std::endl)
+//			PRINT_MESSAGE(progress_bar << " " << progress << "% progress in " << ID() << std::endl)
 			next_progress_step += 5;
 		}
-
+#endif
 		if (Simulator->Time() > next_logging_milestone) {
 			log_file << Simulator->Time() / SIM_TIME_TO_MICROSECONDS_COEFF << "\t" << Get_device_response_time_short_term() << "\t" << Get_end_to_end_request_delay_short_term() << std::endl;
 			STAT_sum_device_response_time_short_term = 0;

@@ -43,7 +43,7 @@ namespace SSD_Components
 	void Data_Cache_Manager_Flash_Simple::Setup_triggers()
 	{
 		Data_Cache_Manager_Base::Setup_triggers();
-		flash_controller->ConnectToTransactionServicedSignal(handle_transaction_serviced_signal_from_PHY);
+        flash_controller->ConnectToTransactionServicedSignal(this, handle_transaction_serviced_signal_from_PHY);
 	}
 
 	void Data_Cache_Manager_Flash_Simple::Do_warmup(std::vector<Utils::Workload_Statistics*> workload_stats)
@@ -205,12 +205,14 @@ namespace SSD_Components
 		}
 	}
 
-	void Data_Cache_Manager_Flash_Simple::handle_transaction_serviced_signal_from_PHY(NVM_Transaction_Flash* transaction)
+	void Data_Cache_Manager_Flash_Simple::handle_transaction_serviced_signal_from_PHY(Sim_Object *instance,
+                                                                                      NVM_Transaction_Flash *transaction)
 	{
 		//First check if the transaction source is a user request or the cache itself
 		if (transaction->Source != Transaction_Source_Type::USERIO && transaction->Source != Transaction_Source_Type::CACHE) {
 			return;
 		}
+        auto _my_instance = dynamic_cast<Data_Cache_Manager_Flash_Simple*>(instance);
 
 		if (transaction->Source == Transaction_Source_Type::USERIO)
 			_my_instance->broadcast_user_memory_transaction_serviced_signal(transaction);
@@ -221,7 +223,7 @@ namespace SSD_Components
 				((NVM_Transaction_Flash_RD*)transaction)->RelatedWrite->RelatedRead = NULL;
 				return;
 			}
-			switch (Data_Cache_Manager_Flash_Simple::caching_mode_per_input_stream[transaction->Stream_id])
+			switch (_my_instance->caching_mode_per_input_stream[transaction->Stream_id])
 			{
 				case Caching_Mode::TURNED_OFF:
 				case Caching_Mode::WRITE_CACHE:
@@ -234,7 +236,7 @@ namespace SSD_Components
 					PRINT_ERROR("The specified caching mode is not not support in simple cache manager!")
 			}
 		} else { //This is a write request
-			switch (Data_Cache_Manager_Flash_Simple::caching_mode_per_input_stream[transaction->Stream_id])
+			switch (_my_instance->caching_mode_per_input_stream[transaction->Stream_id])
 			{
 				case Caching_Mode::TURNED_OFF:
 					transaction->UserIORequest->Transaction_list.remove(transaction);

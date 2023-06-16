@@ -20,13 +20,14 @@ class Host_System : public MQSimEngine::Sim_Object, public MQSimEngine::Sim_Repo
 public:
 	Host_System(Host_Parameter_Set* parameters, bool preconditioning_required, SSD_Components::Host_Interface_Base* ssd_host_interface);
 	~Host_System();
-	void Start_simulation();
-	void Validate_simulation_config();
-	void Execute_simulator_event(MQSimEngine::Sim_Event* event);
-	void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter& xmlwriter);
+	void Start_simulation() override;
+	void Validate_simulation_config() override;
+	void Execute_simulator_event(MQSimEngine::Sim_Event* event) override;
+	void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter& xmlwriter) override;
 
 	void Attach_ssd_device(SSD_Device* ssd_device);
 	const std::vector<Host_Components::IO_Flow_Base*> Get_io_flows();
+    Host_Components::IO_Flow_Base* Get_Integration_IO_Flow();
 private:
 	Host_Components::PCIe_Root_Complex* PCIe_root_complex;
 	Host_Components::PCIe_Link* Link;

@@ -23,7 +23,7 @@ namespace SSD_Components
 			unsigned int ChannelCount, unsigned int chip_no_per_channel, unsigned int DieNoPerChip, unsigned int PlaneNoPerDie)
 			: NVM_PHY_Base(id),
 			channel_count(ChannelCount), chip_no_per_channel(chip_no_per_channel), die_no_per_chip(DieNoPerChip), plane_no_per_die(PlaneNoPerDie){}
-		~NVM_PHY_ONFI() {};
+		~NVM_PHY_ONFI() = default;;
 
 		virtual BusChannelStatus Get_channel_status(flash_channel_ID_type) = 0;
 		virtual NVM::FlashMemory::Flash_Chip* Get_chip(flash_channel_ID_type channel_id, flash_chip_ID_type chip_id) = 0;
@@ -35,22 +35,22 @@ namespace SSD_Components
 		virtual void Send_command_to_chip(std::list<NVM_Transaction_Flash*>& transactionList) = 0;
 		virtual void Change_flash_page_status_for_preconditioning(const NVM::FlashMemory::Physical_Page_Address& page_address, const LPA_type lpa) = 0;
 
-		typedef void(*TransactionServicedHandlerType) (NVM_Transaction_Flash*);
-		void ConnectToTransactionServicedSignal(TransactionServicedHandlerType);
-		typedef void(*ChannelIdleHandlerType) (flash_channel_ID_type);
-		void ConnectToChannelIdleSignal(ChannelIdleHandlerType);
-		typedef void(*ChipIdleHandlerType) (NVM::FlashMemory::Flash_Chip*);
-		void ConnectToChipIdleSignal(ChipIdleHandlerType);
+		typedef void(*TransactionServicedHandlerType) (MQSimEngine::Sim_Object *instance, NVM_Transaction_Flash*);
+		void ConnectToTransactionServicedSignal(MQSimEngine::Sim_Object *instance, TransactionServicedHandlerType);
+		typedef void(*ChannelIdleHandlerType) (MQSimEngine::Sim_Object *instance, flash_channel_ID_type);
+		void ConnectToChannelIdleSignal(MQSimEngine::Sim_Object *instance, ChannelIdleHandlerType);
+		typedef void(*ChipIdleHandlerType) (MQSimEngine::Sim_Object *instance, NVM::FlashMemory::Flash_Chip*);
+		void ConnectToChipIdleSignal(MQSimEngine::Sim_Object *instance, ChipIdleHandlerType);
 	protected:
 		unsigned int channel_count;
 		unsigned int chip_no_per_channel;
 		unsigned int die_no_per_chip;
 		unsigned int plane_no_per_die;
-		std::vector<TransactionServicedHandlerType> connectedTransactionServicedHandlers;
+		std::vector<std::pair<MQSimEngine::Sim_Object*, TransactionServicedHandlerType> > connectedTransactionServicedHandlers;
 		void broadcastTransactionServicedSignal(NVM_Transaction_Flash* transaction);
-		std::vector<ChannelIdleHandlerType> connectedChannelIdleHandlers;
+		std::vector<std::pair<MQSimEngine::Sim_Object *,ChannelIdleHandlerType> > connectedChannelIdleHandlers;
 		void broadcastChannelIdleSignal(flash_channel_ID_type);
-		std::vector<ChipIdleHandlerType> connectedChipIdleHandlers;
+		std::vector<std::pair<MQSimEngine::Sim_Object *, ChipIdleHandlerType> > connectedChipIdleHandlers;
 		void broadcastChipIdleSignal(NVM::FlashMemory::Flash_Chip* chip);
 	};
 }

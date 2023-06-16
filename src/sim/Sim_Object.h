@@ -21,6 +21,11 @@ namespace MQSimEngine
 			return this->_id;
 		}
 
+        uint64_t req_id() const
+        {
+            return this->_req_id;
+        }
+
 		bool IsTriggersSetUp()
 		{
 			return _triggersSetUp;
@@ -42,6 +47,7 @@ namespace MQSimEngine
 		 
 	private:
 		sim_object_id_type _id;
+        uint64_t _req_id;
 		bool _triggersSetUp;
 	};
 }

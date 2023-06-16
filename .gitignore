@@ -1,3 +1,6 @@
 MQSim
 build/
-
+libMQSim.so
+.idea/
+MQSim.*
+libMQSim.so*

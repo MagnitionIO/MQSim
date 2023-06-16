@@ -14,7 +14,8 @@ namespace SSD_Components
 	{
 	public:
 		NVM_Firmware(const sim_object_id_type& id, Data_Cache_Manager_Base* data_cache_manager);
-		void Validate_simulation_config();
+        virtual ~NVM_Firmware() = default;
+		void Validate_simulation_config() override;
 		Data_Cache_Manager_Base* Data_cache_manager;
 		virtual LPA_type Convert_host_logical_address_to_device_address(LHA_type lha) = 0;
 		virtual page_status_type Find_NVM_subunit_access_bitmap(LHA_type lha) = 0;//Returns a bitstring with only one bit in it and determines which subunit (e.g., sub-page in flash memory) is accessed with the target NVM unit (e.g., page in flash memory). If the NVM access unit is B_nvm bytes in size and the LHA_type unit is B_lha bytes in size, then the returned bistream has b bits where b = ceiling(B_nvm / B_lha). 

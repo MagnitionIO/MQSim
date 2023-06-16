@@ -5,8 +5,6 @@
 
 namespace SSD_Components
 {
-	TSU_Base* TSU_Base::_my_instance = NULL;
-
 	TSU_Base::TSU_Base(const sim_object_id_type& id, FTL* ftl, NVM_PHY_ONFI_NVDDR2* NVMController, Flash_Scheduling_Type Type,
 		unsigned int ChannelCount, unsigned int chip_no_per_channel, unsigned int DieNoPerChip, unsigned int PlaneNoPerDie,
 		bool EraseSuspensionEnabled, bool ProgramSuspensionEnabled,
@@ -19,7 +17,6 @@ namespace SSD_Components
 		writeReasonableSuspensionTimeForRead(WriteReasonableSuspensionTimeForRead), eraseReasonableSuspensionTimeForRead(EraseReasonableSuspensionTimeForRead),
 		eraseReasonableSuspensionTimeForWrite(EraseReasonableSuspensionTimeForWrite), opened_scheduling_reqs(0)
 	{
-		_my_instance = this;
 		Round_robin_turn_of_channel = new flash_chip_ID_type[channel_count];
 		for (unsigned int channelID = 0; channelID < channel_count; channelID++) {
 			Round_robin_turn_of_channel[channelID] = 0;
@@ -34,18 +31,19 @@ namespace SSD_Components
 	void TSU_Base::Setup_triggers()
 	{
 		Sim_Object::Setup_triggers();
-		_NVMController->ConnectToTransactionServicedSignal(handle_transaction_serviced_signal_from_PHY);
-		_NVMController->ConnectToChannelIdleSignal(handle_channel_idle_signal);
-		_NVMController->ConnectToChipIdleSignal(handle_chip_idle_signal);
+        _NVMController->ConnectToTransactionServicedSignal(this, handle_transaction_serviced_signal_from_PHY);
+		_NVMController->ConnectToChannelIdleSignal(this, handle_channel_idle_signal);
+		_NVMController->ConnectToChipIdleSignal(this, handle_chip_idle_signal);
 	}
 
-	void TSU_Base::handle_transaction_serviced_signal_from_PHY(NVM_Transaction_Flash* transaction)
+	void TSU_Base::handle_transaction_serviced_signal_from_PHY(Sim_Object */*instance*/, NVM_Transaction_Flash */*transaction*/)
 	{
 		//TSU does nothing. The generator of the transaction will handle it.
 	}
 
-	void TSU_Base::handle_channel_idle_signal(flash_channel_ID_type channelID)
+	void TSU_Base::handle_channel_idle_signal(MQSimEngine::Sim_Object *instance, flash_channel_ID_type channelID)
 	{
+        auto _my_instance = dynamic_cast<TSU_Base*>(instance);
 		for (unsigned int i = 0; i < _my_instance->chip_no_per_channel; i++) {
 			//The TSU does not check if the chip is idle or not since it is possible to suspend a busy chip and issue a new command
 			_my_instance->process_chip_requests(_my_instance->_NVMController->Get_chip(channelID, _my_instance->Round_robin_turn_of_channel[channelID]));
@@ -58,8 +56,9 @@ namespace SSD_Components
 		}
 	}
 	
-	void TSU_Base::handle_chip_idle_signal(NVM::FlashMemory::Flash_Chip* chip)
+	void TSU_Base::handle_chip_idle_signal(MQSimEngine::Sim_Object *instance, NVM::FlashMemory::Flash_Chip* chip)
 	{
+        auto _my_instance = dynamic_cast<TSU_Base*>(instance);
 		if (_my_instance->_NVMController->Get_channel_status(chip->ChannelID) == BusChannelStatus::IDLE) {
 			_my_instance->process_chip_requests(chip);
 		}
@@ -74,8 +73,7 @@ namespace SSD_Components
 		flash_die_ID_type dieID = sourceQueue1->front()->Address.DieID;
 		flash_page_ID_type pageID = sourceQueue1->front()->Address.PageID;
 		unsigned int planeVector = 0;
-		static int issueCntr = 0;
-		
+
 		for (unsigned int i = 0; i < die_no_per_chip; i++)
 		{
 			transaction_dispatch_slots.clear();

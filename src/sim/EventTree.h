@@ -40,9 +40,9 @@ namespace MQSimEngine
 		~EventTree();
 
 		// the number of nodes contained in the tree
-		int Count;
-		//  sentinelNode is convenient way of indicating a leaf node.
-		static EventTreeNode* SentinelNode;
+		int Count = 0;
+		//  sentinelNode is a convenient way of indicating a leaf node.
+		EventTreeNode* SentinelNode = nullptr;
 		void Add(sim_time_type key, Sim_Event* data);
 		void RotateLeft(EventTreeNode* x);
 		void RotateRight(EventTreeNode* x);
@@ -57,9 +57,9 @@ namespace MQSimEngine
 		void Clear();
 	private:
 		// the tree
-		EventTreeNode* rbTree;
+		EventTreeNode* rbTree = nullptr;
 		// the node that was last found; used to optimize searches
-		EventTreeNode* lastNodeFound;
+		EventTreeNode* lastNodeFound = nullptr;
 		void RestoreAfterInsert(EventTreeNode* x);
 		void Delete(EventTreeNode* z);
 		void Restore_after_delete(EventTreeNode* x);
