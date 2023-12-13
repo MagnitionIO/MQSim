@@ -58,6 +58,7 @@ namespace Host_Components {
         if (user_data_req->type == kREQUEST_TYPE::WRITE) {
             request->Type = Host_IO_Request_Type::WRITE;
             STAT_generated_write_request_count++;
+            ++total_write_requests_to_be_generated;
         } else {
             request->Type = Host_IO_Request_Type::READ;
             STAT_generated_read_request_count++;

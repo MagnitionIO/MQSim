@@ -36,7 +36,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 																												STAT_min_request_delay(MAXIMUM_TIME), STAT_min_request_delay_read(MAXIMUM_TIME), STAT_min_request_delay_write(MAXIMUM_TIME),
 																												STAT_max_request_delay(0), STAT_max_request_delay_read(0), STAT_max_request_delay_write(0),
 																												STAT_transferred_bytes_total(0), STAT_transferred_bytes_read(0), STAT_transferred_bytes_write(0), progress(0), next_progress_step(0),
-																												enabled_logging(enabled_logging), logging_period(logging_period), logging_file_path(logging_file_path)
+																												enabled_logging(enabled_logging), logging_period(logging_period), logging_file_path(logging_file_path), total_write_requests_to_be_generated(0)
 {
 	Host_IO_Request *t = NULL;
 
@@ -564,21 +564,34 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 		std::string val = ID();
 		xmlwriter.Write_attribute_string(attr, val);
 
-		attr = "Request_Count";
-		val = std::to_string(STAT_generated_request_count);
-		xmlwriter.Write_attribute_string(attr, val);
+        attr = "Request_Count";
+        val = std::to_string(STAT_generated_request_count);
+        xmlwriter.Write_attribute_string(attr, val);
 
-		attr = "Read_Request_Count";
-		val = std::to_string(STAT_generated_read_request_count);
-		xmlwriter.Write_attribute_string(attr, val);
+        attr = "Read_Request_Count";
+        val = std::to_string(STAT_generated_read_request_count);
+        xmlwriter.Write_attribute_string(attr, val);
 
-		attr = "Write_Request_Count";
-		val = std::to_string(STAT_generated_write_request_count);
-		xmlwriter.Write_attribute_string(attr, val);
+        attr = "Write_Request_Count";
+        val = std::to_string(STAT_generated_write_request_count);
+        xmlwriter.Write_attribute_string(attr, val);
+        attr = "Host_Write_Request_Count";
+        val = std::to_string(total_write_requests_to_be_generated);
+        xmlwriter.Write_attribute_string(attr, val);
 
-		attr = "IOPS";
-		val = std::to_string((double)STAT_generated_request_count / (Simulator->Time() / SIM_TIME_TO_SECONDS_COEFF));
-		xmlwriter.Write_attribute_string(attr, val);
+        attr = "Actual_Writes_on_Flash";
+        val = std::to_string(Simulator->stats->IssuedProgramCMD + Simulator->stats->IssuedMultiplaneProgramCMD);
+        xmlwriter.Write_attribute_string(attr, val);
+
+        attr = "Write_Amplification";
+        val = std::to_string(
+                (double) (Simulator->stats->IssuedProgramCMD + Simulator->stats->IssuedMultiplaneProgramCMD) /
+                total_write_requests_to_be_generated);
+        
+        xmlwriter.Write_attribute_string(attr, val);
+        attr = "IOPS";
+        val = std::to_string((double) STAT_generated_request_count / (Simulator->Time() / SIM_TIME_TO_SECONDS_COEFF));
+        xmlwriter.Write_attribute_string(attr, val);
 
 		attr = "IOPS_Read";
 		val = std::to_string((double)STAT_generated_read_request_count / (Simulator->Time() / SIM_TIME_TO_SECONDS_COEFF));

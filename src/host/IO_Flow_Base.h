@@ -73,6 +73,7 @@ namespace Host_Components
 		double initial_occupancy_ratio;//The initial amount of valid logical pages when pereconditioning is performed
 		sim_time_type stop_time;//The flow stops generating request when simulation time reaches stop_time
 		unsigned int total_requests_to_be_generated;//If stop_time is zero, then the flow stops generating request when the number of generated requests is equal to total_req_count
+        unsigned int total_write_requests_to_be_generated; // To Calculate Write Amplification we need to first see how many write requests are actually being made by the host
 		HostInterface_Types SSD_device_type;
 		PCIe_Root_Complex* pcie_root_complex;
 		SATA_HBA* sata_hba;
