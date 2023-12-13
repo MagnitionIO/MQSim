@@ -88,6 +88,7 @@ IO_Flow_Synthetic::IO_Flow_Synthetic(const sim_object_id_type &name, uint16_t fl
 		} else {
 			request->Type = Host_IO_Request_Type::WRITE;
 			STAT_generated_write_request_count++;
+            ++total_write_requests_to_be_generated;
 		}
 
 		switch (request_size_distribution) {

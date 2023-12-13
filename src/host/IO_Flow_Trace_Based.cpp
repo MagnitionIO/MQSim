@@ -140,6 +140,7 @@ void IO_Flow_Trace_Based::Start_simulation()
 	PRINT_MESSAGE("Investigating input trace file: " << trace_file_path);
 
 	sim_time_type last_request_arrival_time = 0;
+    auto total_write_requests_in_file = 0;
 	while (std::getline(trace_file, trace_line))
 	{
 		Utils::Helper_Functions::Remove_cr(trace_line);
@@ -150,6 +151,9 @@ void IO_Flow_Trace_Based::Start_simulation()
 			break;
 		}
 		total_requests_in_file++;
+        if (current_trace_line[ASCIITraceTypeColumn] == ASCIITraceWriteCode) {
+            ++total_write_requests_in_file;
+        }
 		sim_time_type prev_time = last_request_arrival_time;
 		last_request_arrival_time = std::strtoll(current_trace_line[ASCIITraceTimeColumn].c_str(), &pEnd, 10);
 		if (last_request_arrival_time < prev_time)
@@ -164,11 +168,13 @@ void IO_Flow_Trace_Based::Start_simulation()
 	if (total_replay_no == 1)
 	{
 		total_requests_to_be_generated = (int)(((double)percentage_to_be_simulated / 100) * total_requests_in_file);
-	}
+        total_write_requests_to_be_generated += (int)(((double)percentage_to_be_simulated / 100) * total_write_requests_in_file);
+    }
 	else
 	{
 		total_requests_to_be_generated = total_requests_in_file * total_replay_no;
-	}
+        total_write_requests_to_be_generated += (int)(((double)percentage_to_be_simulated / 100) * total_write_requests_in_file);
+    }
 
 	trace_file.open(trace_file_path);
 	current_trace_line.clear();
